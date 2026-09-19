@@ -1,0 +1,115 @@
+package main
+
+import (
+	"errors"
+	"log"
+	"os"
+
+	"github.com/daqing/a1s/app/websocket"
+	"github.com/daqing/airway/cmd"
+	"github.com/daqing/airway/lib/jsbuild"
+	"github.com/daqing/airway/lib/plugin"
+	"github.com/daqing/airway/lib/redis_client"
+	"github.com/daqing/airway/lib/repo"
+	"github.com/daqing/airway/lib/storage"
+	"github.com/daqing/airway/lib/utils"
+	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
+)
+
+// The project binary starts the HTTP server by default (or via `server`).
+// Any other argument is dispatched to the Airway CLI compiled into this
+// binary, so project-local code (REPL models, plugins, Go DSL migrations
+// imported below) is visible to commands like `go run . repl`.
+func main() {
+	args := os.Args[1:]
+
+	// `--version` / `-v` print the VERSION file contents directly, without
+	// loading .env or any other project setup.
+	if len(args) > 0 && (args[0] == "--version" || args[0] == "-v") {
+		printVersion()
+		return
+	}
+
+	if len(args) == 0 || args[0] == "server" {
+		runServer()
+		return
+	}
+
+	cmd.Version = versionString()
+	loadCLIEnv()
+	cmd.Run(args)
+}
+
+func runServer() {
+	// .env supplies fallbacks for anything the process environment does not
+	// set (godotenv.Load never overrides existing values), so
+	// `PORT=1988 airway server` wins over a PORT in .env. Load it before any
+	// env checks so AIRWAY_ENV itself can come from .env.
+	if err := godotenv.Load(".env"); err != nil && !errors.Is(err, os.ErrNotExist) {
+		log.Printf("Loading env file: .env failed: %v", err)
+	}
+
+	appConfig := utils.AppConfig()
+
+	if appConfig.Env == "" {
+		log.Println("AIRWAY_ENV is not set")
+		os.Exit(1)
+	}
+
+	if !appConfig.IsLocal {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
+	dsn := utils.GetEnvMulti("AIRWAY_DSN", "DSN")
+
+	if len(dsn) > 0 {
+		if _, setupErr := repo.SetupDB(dsn); setupErr != nil {
+			log.Printf("database setup failed: %v", setupErr)
+			os.Exit(3)
+		}
+	}
+
+	redisURL := utils.GetEnvMulti("AIRWAY_REDIS", "REDIS")
+	if len(redisURL) > 0 {
+		redis_client.Setup(redisURL)
+	}
+
+	// In local development the frontend bundle is rebuilt in memory and
+	// served with livereload; production serves the embedded dist bundle.
+	// A missing vendor directory aborts the boot: the source watcher skips
+	// vendor/, so a running server would never pick up a later js:install.
+	if appConfig.IsLocal {
+		if _, err := jsbuild.StartDefault(".", websocket.Broadcast); err != nil {
+			if errors.Is(err, jsbuild.ErrVendorMissing) {
+				log.Printf("frontend dev server failed: %v", err)
+				os.Exit(6)
+			}
+			log.Printf("frontend dev server disabled: %v", err)
+		}
+	}
+
+	if _, err := storage.Setup(storage.FromEnv()); err != nil {
+		log.Printf("storage setup failed: %v", err)
+		os.Exit(4)
+	}
+
+	if err := plugin.BootAll(); err != nil {
+		log.Printf("plugin boot failed: %v", err)
+		os.Exit(5)
+	}
+
+	runApp()
+}
+
+func loadCLIEnv() {
+	err := godotenv.Load(".env")
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		log.Printf("Loading env file: .env failed: %v", err)
+	}
+}
+
+func runApp() {
+	app := NewApp("Airway", utils.GetEnvOr("AIRWAY_PORT", "PORT"))
+	app.Run()
+}
