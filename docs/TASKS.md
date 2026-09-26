@@ -25,7 +25,7 @@ box until that line is true.
 
 | Phase | Theme                              | Tasks    | Status |
 | ----- | --------------------------------- | -------- | ------ |
-| 0     | Skeleton cleanup and commands     | T0.1–T0.5 | open   |
+| 0     | Skeleton cleanup and commands     | T0.1–T0.5 | 1/5    |
 | 1     | Data model and optimistic locking | T1.1–T1.7 | open   |
 | 2     | API process + CLI client          | T2.1–T2.9 | open   |
 | 3     | Worker agent + heartbeats         | T3.1–T3.8 | open   |
@@ -37,7 +37,7 @@ box until that line is true.
 
 ## Phase 0 — Skeleton cleanup and command layout
 
-- [ ] **T0.1 — Subcommand dispatch in `main.go`**
+- [x] **T0.1 — Subcommand dispatch in `main.go`**
   Replace the "server by default" logic with explicit dispatch: `api` (with
   `server` kept as an alias) boots today's HTTP server; `scheduler`,
   `monitor`, and `worker` exit with a clear "not implemented yet" message and
@@ -61,7 +61,9 @@ box until that line is true.
   `app/api/storage_api`, `app/api/openapi_api`, the `jsbuild` dev-server boot
   in `main.go` (local mode), the templ directives in `generate.go`, and any
   Procfile/justfile entries that exist only for the frontend. Git history
-  keeps everything recoverable.
+  keeps everything recoverable. The admin dashboard is a separate project
+  consuming the public API (see `docs/ROADMAP.md`), so the web scaffold has
+  no future in this repo.
   *Done when:* `go build ./...`, `go vet ./...`, and `go test ./...` are all
   clean with no unused imports or dead packages left.
 

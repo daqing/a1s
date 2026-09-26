@@ -13,3 +13,5 @@
 *.sock
 
 schema.json
+
+build-errors.log

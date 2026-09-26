@@ -14,4 +14,4 @@ ENV TZ="Asia/Shanghai"
 
 EXPOSE 1905
 
-CMD ["/app/app"]
+CMD ["/app/app", "api"]

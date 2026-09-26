@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"os"
 
@@ -17,10 +18,11 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// The project binary starts the HTTP server by default (or via `server`).
-// Any other argument is dispatched to the Airway CLI compiled into this
-// binary, so project-local code (REPL models, plugins, Go DSL migrations
-// imported below) is visible to commands like `go run . repl`.
+// The project binary dispatches on its first argument. The A1s process
+// subcommands (`api`, `scheduler`, `monitor`, `worker`) start system
+// processes; any other argument goes to the Airway CLI compiled into this
+// binary, so project-local code (REPL models, plugins, migrations) is
+// visible to commands like `go run . repl`.
 func main() {
 	args := os.Args[1:]
 
@@ -31,14 +33,42 @@ func main() {
 		return
 	}
 
-	if len(args) == 0 || args[0] == "server" {
-		runServer()
-		return
+	if len(args) == 0 {
+		printUsage()
+		os.Exit(2)
 	}
 
-	cmd.Version = versionString()
-	loadCLIEnv()
-	cmd.Run(args)
+	switch args[0] {
+	case "server", "api":
+		runServer()
+	case "scheduler", "monitor", "worker":
+		notImplemented(args[0])
+	default:
+		cmd.Version = versionString()
+		loadCLIEnv()
+		cmd.Run(args)
+	}
+}
+
+// notImplemented exits with a code distinct from the server boot failure
+// codes (1, 3–6), so scripts can tell "process not built yet" from a
+// failed boot.
+func notImplemented(name string) {
+	fmt.Fprintf(os.Stderr, "a1s %s is not implemented yet\n", name)
+	os.Exit(70)
+}
+
+func printUsage() {
+	w := os.Stderr
+	fmt.Fprintln(w, "usage: a1s <command> [args]")
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "process commands:")
+	fmt.Fprintln(w, "  api        start the HTTP control plane API (alias: server)")
+	fmt.Fprintln(w, "  scheduler  start the scheduling loop (not implemented yet)")
+	fmt.Fprintln(w, "  monitor    start the health monitor (not implemented yet)")
+	fmt.Fprintln(w, "  worker     start the worker agent (not implemented yet)")
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "any other command is dispatched to the Airway CLI (repl, db:migrate, generate, ...)")
 }
 
 func runServer() {
