@@ -25,7 +25,7 @@ box until that line is true.
 
 | Phase | Theme                              | Tasks    | Status |
 | ----- | --------------------------------- | -------- | ------ |
-| 0     | Skeleton cleanup and commands     | T0.1–T0.5 | 3/5    |
+| 0     | Skeleton cleanup and commands     | T0.1–T0.5 | 4/5    |
 | 1     | Data model and optimistic locking | T1.1–T1.7 | open   |
 | 2     | API process + CLI client          | T2.1–T2.9 | open   |
 | 3     | Worker agent + heartbeats         | T3.1–T3.8 | open   |
@@ -67,7 +67,7 @@ box until that line is true.
   *Done when:* `go build ./...`, `go vet ./...`, and `go test ./...` are all
   clean with no unused imports or dead packages left.
 
-- [ ] **T0.4 — Env-var namespacing**
+- [x] **T0.4 — Env-var namespacing**
   Fix the env contract: process-specific vars use the `A1S_` prefix
   (`A1S_DSN`, `A1S_API_URL`, later `A1S_HEARTBEAT_INTERVAL`, ...), while
   Airway-internal vars (`AIRWAY_ENV`, `AIRWAY_PORT`) keep their names. Update

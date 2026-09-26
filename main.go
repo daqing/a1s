@@ -89,7 +89,10 @@ func runServer() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	dsn := utils.GetEnvMulti("AIRWAY_DSN", "DSN")
+	// Process vars use the A1S_ prefix (see .env.example); the AIRWAY_/
+	// legacy names stay accepted so the Airway framework and existing
+	// deployments keep working.
+	dsn := utils.GetEnvMulti("A1S_DSN", "AIRWAY_DSN", "DSN")
 
 	if len(dsn) > 0 {
 		if _, setupErr := repo.SetupDB(dsn); setupErr != nil {
@@ -98,7 +101,7 @@ func runServer() {
 		}
 	}
 
-	redisURL := utils.GetEnvMulti("AIRWAY_REDIS", "REDIS")
+	redisURL := utils.GetEnvMulti("A1S_REDIS", "AIRWAY_REDIS", "REDIS")
 	if len(redisURL) > 0 {
 		redis_client.Setup(redisURL)
 	}
@@ -116,10 +119,25 @@ func runServer() {
 	runApp()
 }
 
+// loadCLIEnv loads .env for CLI commands and bridges the canonical A1S_
+// vars onto the legacy names the Airway CLI reads (DSN, REDIS).
 func loadCLIEnv() {
 	err := godotenv.Load(".env")
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		log.Printf("Loading env file: .env failed: %v", err)
+	}
+
+	bridgeEnv("A1S_DSN", "DSN")
+	bridgeEnv("A1S_REDIS", "REDIS")
+}
+
+// bridgeEnv exposes the canonical A1S_ var under the legacy name the
+// Airway CLI expects, unless the legacy name is already set.
+func bridgeEnv(canon, legacy string) {
+	if os.Getenv(legacy) == "" {
+		if v := os.Getenv(canon); v != "" {
+			os.Setenv(legacy, v)
+		}
 	}
 }
 
