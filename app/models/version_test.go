@@ -3,6 +3,7 @@ package models
 import (
 	"errors"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -108,5 +109,60 @@ func TestUpdateWhereVersionStaleConflicts(t *testing.T) {
 
 	if row.Value != "v2" || row.Version != created.Version+1 {
 		t.Fatalf("stale update must not touch the row, got value=%q version=%d", row.Value, row.Version)
+	}
+}
+
+func TestUpdateWhereVersionConcurrentSingleWinner(t *testing.T) {
+	setupVersionTestDB(t)
+
+	created, err := repo.CreateFrom[versionTestRow](buildingsql.H{"value": "original"})
+	if err != nil {
+		t.Fatalf("create row: %v", err)
+	}
+
+	const contenders = 8
+	fire := make(chan struct{})
+	results := make(chan error, contenders)
+
+	var wg sync.WaitGroup
+	for i := 0; i < contenders; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			<-fire
+
+			_, err := UpdateWhereVersion[versionTestRow](created.ID, created.Version, buildingsql.H{"value": "updated"})
+			results <- err
+		}()
+	}
+
+	close(fire)
+	wg.Wait()
+	close(results)
+
+	winners := 0
+	for err := range results {
+		switch {
+		case err == nil:
+			winners++
+		case errors.Is(err, ErrVersionConflict):
+			// expected for every loser
+		default:
+			t.Fatalf("unexpected concurrent update error: %v", err)
+		}
+	}
+
+	if winners != 1 {
+		t.Fatalf("expected exactly 1 winner among %d contenders, got %d", contenders, winners)
+	}
+
+	row, err := repo.FindByID[versionTestRow](buildingsql.IdType(created.ID))
+	if err != nil {
+		t.Fatalf("refetch: %v", err)
+	}
+
+	if row.Value != "updated" || row.Version != created.Version+1 {
+		t.Fatalf("expected one applied update (value=updated version=%d), got value=%q version=%d",
+			created.Version+1, row.Value, row.Version)
 	}
 }

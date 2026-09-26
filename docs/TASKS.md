@@ -26,7 +26,7 @@ box until that line is true.
 | Phase | Theme                              | Tasks    | Status |
 | ----- | --------------------------------- | -------- | ------ |
 | 0     | Skeleton cleanup and commands     | T0.1–T0.5 | 5/5 ✓  |
-| 1     | Data model and optimistic locking | T1.1–T1.7 | 5/7    |
+| 1     | Data model and optimistic locking | T1.1–T1.7 | 6/7    |
 | 2     | API process + CLI client          | T2.1–T2.9 | open   |
 | 3     | Worker agent + heartbeats         | T3.1–T3.8 | open   |
 | 4     | Scheduler                         | T4.1–T4.5 | open   |
@@ -124,7 +124,7 @@ box until that line is true.
   increments version, while a stale version returns the conflict error
   without touching the row.
 
-- [ ] **T1.6 — Concurrency proof test**
+- [x] **T1.6 — Concurrency proof test**
   An integration test (skipped unless a test DSN env var is set) that runs
   two concurrent `UpdateWhereVersion` calls on the same row and asserts
   exactly one succeeds.
