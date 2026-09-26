@@ -25,7 +25,7 @@ box until that line is true.
 
 | Phase | Theme                              | Tasks    | Status |
 | ----- | --------------------------------- | -------- | ------ |
-| 0     | Skeleton cleanup and commands     | T0.1–T0.5 | 1/5    |
+| 0     | Skeleton cleanup and commands     | T0.1–T0.5 | 2/5    |
 | 1     | Data model and optimistic locking | T1.1–T1.7 | open   |
 | 2     | API process + CLI client          | T2.1–T2.9 | open   |
 | 3     | Worker agent + heartbeats         | T3.1–T3.8 | open   |
@@ -47,7 +47,7 @@ box until that line is true.
   server; `go run . scheduler` prints the placeholder; `go run . repl` still
   works.
 
-- [ ] **T0.2 — Trim route registration in `config/routes.go`**
+- [x] **T0.2 — Trim route registration in `config/routes.go`**
   Decide and apply: stop registering `home_api`, `storage_api`, the websocket
   routes, and the OpenAPI route (`openapi_api`). Keep `health_api` (`/health`)
   for LB probes. Default per roadmap: drop OpenAPI now, revisit in Phase 6.

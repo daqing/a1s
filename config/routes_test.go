@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func TestRoutesRegistersCoreEndpoints(t *testing.T) {
+func TestRoutesServesHealthOnly(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	r := gin.New()
@@ -17,9 +17,12 @@ func TestRoutesRegistersCoreEndpoints(t *testing.T) {
 		registered[route.Method+" "+route.Path] = true
 	}
 
-	expected := []string{
+	if !registered["GET /health"] {
+		t.Fatalf("expected GET /health to be registered, got %#v", registered)
+	}
+
+	dropped := []string{
 		"GET /",
-		"GET /health",
 		"GET /openapi.json",
 		"GET /ws",
 		"POST /ws/publish",
@@ -28,9 +31,9 @@ func TestRoutesRegistersCoreEndpoints(t *testing.T) {
 		"DELETE /api/v1/storage/*key",
 	}
 
-	for _, route := range expected {
-		if !registered[route] {
-			t.Fatalf("expected route %s to be registered, got %#v", route, registered)
+	for _, route := range dropped {
+		if registered[route] {
+			t.Fatalf("expected route %s to be dropped, got %#v", route, registered)
 		}
 	}
 }
