@@ -26,7 +26,7 @@ box until that line is true.
 | Phase | Theme                              | Tasks    | Status |
 | ----- | --------------------------------- | -------- | ------ |
 | 0     | Skeleton cleanup and commands     | T0.1–T0.5 | 5/5 ✓  |
-| 1     | Data model and optimistic locking | T1.1–T1.7 | 3/7    |
+| 1     | Data model and optimistic locking | T1.1–T1.7 | 4/7    |
 | 2     | API process + CLI client          | T2.1–T2.9 | open   |
 | 3     | Worker agent + heartbeats         | T3.1–T3.8 | open   |
 | 4     | Scheduler                         | T4.1–T4.5 | open   |
@@ -109,7 +109,7 @@ box until that line is true.
   *Done when:* `go run . repl` can insert, find, and list `Worker` rows
   against the migrated database.
 
-- [ ] **T1.4 — `Container` repo model**
+- [x] **T1.4 — `Container` repo model**
   Same as T1.3 for `containers`, including `Version`, the status constants as
   named Go values, and a typed `Env` map that serializes to the JSONB column.
   *Done when:* REPL round-trips a `Container` row including env and status.
