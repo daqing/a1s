@@ -6,6 +6,10 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
+
+	// Side-effect import: registers the project models in the REPL namespace.
+	_ "github.com/daqing/a1s/app/models"
 
 	"github.com/daqing/airway/cmd"
 	"github.com/daqing/airway/lib/plugin"
@@ -50,8 +54,28 @@ func main() {
 	default:
 		cmd.Version = versionString()
 		loadCLIEnv()
-		cmd.Run(args)
+		cmd.Run(withREPLDSN(args))
 	}
+}
+
+// withREPLDSN passes the configured DSN to the Airway REPL, which — unlike
+// the other CLI commands — does not read the DSN env vars itself.
+func withREPLDSN(args []string) []string {
+	if len(args) == 0 || args[0] != "repl" {
+		return args
+	}
+
+	for _, arg := range args[1:] {
+		if arg == "--dsn" || strings.HasPrefix(arg, "--dsn=") {
+			return args
+		}
+	}
+
+	if dsn := utils.GetEnvMulti("A1S_DSN", "AIRWAY_DSN", "DSN"); dsn != "" {
+		return append(args, "--dsn", dsn)
+	}
+
+	return args
 }
 
 // notImplemented exits with a code distinct from the server boot failure

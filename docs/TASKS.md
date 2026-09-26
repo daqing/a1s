@@ -26,7 +26,7 @@ box until that line is true.
 | Phase | Theme                              | Tasks    | Status |
 | ----- | --------------------------------- | -------- | ------ |
 | 0     | Skeleton cleanup and commands     | T0.1–T0.5 | 5/5 ✓  |
-| 1     | Data model and optimistic locking | T1.1–T1.7 | 2/7    |
+| 1     | Data model and optimistic locking | T1.1–T1.7 | 3/7    |
 | 2     | API process + CLI client          | T2.1–T2.9 | open   |
 | 3     | Worker agent + heartbeats         | T3.1–T3.8 | open   |
 | 4     | Scheduler                         | T4.1–T4.5 | open   |
@@ -102,7 +102,7 @@ box until that line is true.
   `version`, `scheduled_at`, timestamps.
   *Done when:* migration up/down runs cleanly on top of T1.1.
 
-- [ ] **T1.3 — `Worker` repo model**
+- [x] **T1.3 — `Worker` repo model**
   Add `app/models/worker.go` using the Airway `lib/repo` generics, with the
   `Version` field mapped, and register it for the REPL namespace (follow the
   existing `app/models/registry.go` pattern).
