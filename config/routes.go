@@ -3,6 +3,7 @@ package config
 import (
 	"github.com/gin-gonic/gin"
 
+	"github.com/daqing/a1s/app/api/containers_api"
 	"github.com/daqing/a1s/app/api/health_api"
 	"github.com/daqing/airway/lib/plugin"
 )
@@ -17,10 +18,19 @@ func Routes(r *gin.Engine) {
 	HealthRoutes(r)
 }
 
-// PublicRoutes registers the user-facing routes. When a URL_PREFIX is
-// configured these answer only under the prefix; see App.Handler.
+// PublicRoutes registers the user-facing routes: the versioned REST API
+// (docs/api.md) plus plugin mounts. When a URL_PREFIX is configured these
+// answer only under the prefix; see App.Handler.
 func PublicRoutes(r *gin.Engine) {
+	apiGroupRoutes(r)
 	plugin.MountAll(r)
+}
+
+// apiGroupRoutes registers the /api/v1 public API surface, endpoint group by
+// endpoint group as the phases land them.
+func apiGroupRoutes(r *gin.Engine) {
+	v1 := r.Group("/api/v1")
+	containers_api.Routes(v1)
 }
 
 // HealthRoutes registers the internal health-check route. It stays reachable at

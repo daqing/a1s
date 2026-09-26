@@ -21,6 +21,10 @@ func TestRoutesServesHealthOnly(t *testing.T) {
 		t.Fatalf("expected GET /health to be registered, got %#v", registered)
 	}
 
+	if !registered["POST /api/v1/containers"] {
+		t.Fatalf("expected POST /api/v1/containers to be registered, got %#v", registered)
+	}
+
 	dropped := []string{
 		"GET /",
 		"GET /openapi.json",

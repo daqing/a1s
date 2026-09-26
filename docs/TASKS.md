@@ -27,7 +27,7 @@ box until that line is true.
 | ----- | --------------------------------- | -------- | ------ |
 | 0     | Skeleton cleanup and commands     | T0.1–T0.5 | 5/5 ✓  |
 | 1     | Data model and optimistic locking | T1.1–T1.7 | 7/7 ✓  |
-| 2     | API process + CLI client          | T2.1–T2.9 | 1/9    |
+| 2     | API process + CLI client          | T2.1–T2.9 | 2/9    |
 | 3     | Worker agent + heartbeats         | T3.1–T3.8 | open   |
 | 4     | Scheduler                         | T4.1–T4.5 | open   |
 | 5     | Health monitor                    | T5.1–T5.6 | open   |
@@ -151,7 +151,7 @@ box until that line is true.
   *Done when:* the doc fits on one screen per endpoint group and every later
   handler task can be written mechanically from it.
 
-- [ ] **T2.2 — `POST /api/v1/containers` (run)**
+- [x] **T2.2 — `POST /api/v1/containers` (run)**
   Handler in `app/api` (new `containers_api` package) that validates name and
   image (Airway `lib/validation`), defaults the restart policy, and inserts a
   row with status `pending` and `worker_id NULL`. The API never talks to
