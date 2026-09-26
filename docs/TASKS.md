@@ -25,7 +25,7 @@ box until that line is true.
 
 | Phase | Theme                              | Tasks    | Status |
 | ----- | --------------------------------- | -------- | ------ |
-| 0     | Skeleton cleanup and commands     | T0.1–T0.5 | 2/5    |
+| 0     | Skeleton cleanup and commands     | T0.1–T0.5 | 3/5    |
 | 1     | Data model and optimistic locking | T1.1–T1.7 | open   |
 | 2     | API process + CLI client          | T2.1–T2.9 | open   |
 | 3     | Worker agent + heartbeats         | T3.1–T3.8 | open   |
@@ -55,7 +55,7 @@ box until that line is true.
   *Done when:* `go run . api` serves `/health` only; no other routes answer;
   build and tests pass.
 
-- [ ] **T0.3 — Remove dead scaffold code and boot hooks**
+- [x] **T0.3 — Remove dead scaffold code and boot hooks**
   Now that nothing references them, remove the unused scaffold pieces:
   `app/views`, `app/assets`, `app/websocket`, `app/api/home_api`,
   `app/api/storage_api`, `app/api/openapi_api`, the `jsbuild` dev-server boot

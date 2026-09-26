@@ -6,9 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/daqing/a1s/app/websocket"
 	"github.com/daqing/airway/cmd"
-	"github.com/daqing/airway/lib/jsbuild"
 	"github.com/daqing/airway/lib/plugin"
 	"github.com/daqing/airway/lib/redis_client"
 	"github.com/daqing/airway/lib/repo"
@@ -103,20 +101,6 @@ func runServer() {
 	redisURL := utils.GetEnvMulti("AIRWAY_REDIS", "REDIS")
 	if len(redisURL) > 0 {
 		redis_client.Setup(redisURL)
-	}
-
-	// In local development the frontend bundle is rebuilt in memory and
-	// served with livereload; production serves the embedded dist bundle.
-	// A missing vendor directory aborts the boot: the source watcher skips
-	// vendor/, so a running server would never pick up a later js:install.
-	if appConfig.IsLocal {
-		if _, err := jsbuild.StartDefault(".", websocket.Broadcast); err != nil {
-			if errors.Is(err, jsbuild.ErrVendorMissing) {
-				log.Printf("frontend dev server failed: %v", err)
-				os.Exit(6)
-			}
-			log.Printf("frontend dev server disabled: %v", err)
-		}
 	}
 
 	if _, err := storage.Setup(storage.FromEnv()); err != nil {
