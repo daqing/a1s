@@ -8,6 +8,12 @@ guidelines for a part-time effort and should be adjusted to your pace.
 For a task-by-task checklist sized to spare-time sittings, see
 `docs/TASKS.md`.
 
+The admin dashboard will be a separate project that consumes the public REST
+API of this system over HTTP. It is out of scope for this repo, and the
+Airway web scaffold (views, assets, websocket) has no future here — which is
+why Phase 0 removes it. The API contract (`docs/api.md`, Phase 2) doubles as
+the dashboard's contract, so keep it JSON-clean and versioned.
+
 Legend: `[API]` control plane API process · `[SCHED]` scheduler process ·
 `[MON]` health monitor process · `[W]` worker agent · `[CLI]` stateless CLI
 client commands · `[DB]` database.
