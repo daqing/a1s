@@ -5,6 +5,9 @@ Each phase ends with a working, verifiable system — never a broken tree — so
 development can pause and resume at any phase boundary. Durations are rough
 guidelines for a part-time effort and should be adjusted to your pace.
 
+For a task-by-task checklist sized to spare-time sittings, see
+`docs/TASKS.md`.
+
 Legend: `[API]` control plane API process · `[SCHED]` scheduler process ·
 `[MON]` health monitor process · `[W]` worker agent · `[CLI]` stateless CLI
 client commands · `[DB]` database.
