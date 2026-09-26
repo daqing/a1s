@@ -26,7 +26,7 @@ box until that line is true.
 | Phase | Theme                              | Tasks    | Status |
 | ----- | --------------------------------- | -------- | ------ |
 | 0     | Skeleton cleanup and commands     | T0.1–T0.5 | 5/5 ✓  |
-| 1     | Data model and optimistic locking | T1.1–T1.7 | 6/7    |
+| 1     | Data model and optimistic locking | T1.1–T1.7 | 7/7 ✓  |
 | 2     | API process + CLI client          | T2.1–T2.9 | open   |
 | 3     | Worker agent + heartbeats         | T3.1–T3.8 | open   |
 | 4     | Scheduler                         | T4.1–T4.5 | open   |
@@ -131,7 +131,7 @@ box until that line is true.
   *Done when:* the test passes against PostgreSQL (use the Docker command
   from the preamble if needed) and demonstrates exactly one winner.
 
-- [ ] **T1.7 — `docs/state-model.md` + Phase 1 check**
+- [x] **T1.7 — `docs/state-model.md` + Phase 1 check**
   Write the state model doc: every `workers`/`containers` status, the legal
   transitions (who performs them: API, scheduler, worker, monitor), and the
   version-conflict rule. Then replay the phase acceptance.
