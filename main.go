@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
 
@@ -32,13 +33,18 @@ func main() {
 	}
 
 	if len(args) == 0 {
-		printUsage()
+		printUsage(os.Stderr)
 		os.Exit(2)
 	}
 
 	switch args[0] {
 	case "server", "api":
 		runServer()
+	case "help", "-h", "--help":
+		printUsage(os.Stdout)
+		fmt.Fprintln(os.Stdout)
+		cmd.Version = versionString()
+		cmd.Run([]string{"help"})
 	case "scheduler", "monitor", "worker":
 		notImplemented(args[0])
 	default:
@@ -56,8 +62,7 @@ func notImplemented(name string) {
 	os.Exit(70)
 }
 
-func printUsage() {
-	w := os.Stderr
+func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "usage: a1s <command> [args]")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "process commands:")
@@ -66,7 +71,7 @@ func printUsage() {
 	fmt.Fprintln(w, "  monitor    start the health monitor (not implemented yet)")
 	fmt.Fprintln(w, "  worker     start the worker agent (not implemented yet)")
 	fmt.Fprintln(w)
-	fmt.Fprintln(w, "any other command is dispatched to the Airway CLI (repl, db:migrate, generate, ...)")
+	fmt.Fprintln(w, "any other command is dispatched to the Airway CLI (repl, db:migrate, generate, ...); the command list follows")
 }
 
 func runServer() {

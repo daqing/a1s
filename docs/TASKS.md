@@ -25,7 +25,7 @@ box until that line is true.
 
 | Phase | Theme                              | Tasks    | Status |
 | ----- | --------------------------------- | -------- | ------ |
-| 0     | Skeleton cleanup and commands     | T0.1–T0.5 | 4/5    |
+| 0     | Skeleton cleanup and commands     | T0.1–T0.5 | 5/5 ✓  |
 | 1     | Data model and optimistic locking | T1.1–T1.7 | open   |
 | 2     | API process + CLI client          | T2.1–T2.9 | open   |
 | 3     | Worker agent + heartbeats         | T3.1–T3.8 | open   |
@@ -75,7 +75,7 @@ box until that line is true.
   *Done when:* `.env.example` documents every var the binary reads today, and
   `a1s api` boots from a `.env` containing only those vars.
 
-- [ ] **T0.5 — Phase 0 check**
+- [x] **T0.5 — Phase 0 check**
   Replay the roadmap acceptance end to end on a clean checkout.
   *Done when:* `go build ./...` passes; the binary's help/usage lists
   `api`, `scheduler`, `monitor`, `worker` plus the Airway CLI commands; and
