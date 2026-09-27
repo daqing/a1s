@@ -2,7 +2,6 @@ package scheduler
 
 import (
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
@@ -66,13 +65,7 @@ func apitestExec(t *testing.T, query string, args ...any) {
 }
 
 func TestSelectWorkerPicksLeastLoadedActive(t *testing.T) {
-	if os.Getenv("A1S_TEST_DSN") == "" {
-		t.Skip("A1S_TEST_DSN not set; skipping database-backed test")
-	}
-
-	if _, err := repo.SetupDB(os.Getenv("A1S_TEST_DSN")); err != nil {
-		t.Fatalf("setup test database: %v", err)
-	}
+	setupTestDB(t)
 
 	busyID, idleID, _ := seedSelectionFixtures(t)
 
@@ -91,13 +84,7 @@ func TestSelectWorkerPicksLeastLoadedActive(t *testing.T) {
 }
 
 func TestSelectWorkerSkipsLost(t *testing.T) {
-	if os.Getenv("A1S_TEST_DSN") == "" {
-		t.Skip("A1S_TEST_DSN not set; skipping database-backed test")
-	}
-
-	if _, err := repo.SetupDB(os.Getenv("A1S_TEST_DSN")); err != nil {
-		t.Fatalf("setup test database: %v", err)
-	}
+	setupTestDB(t)
 
 	_, _, lostID := seedSelectionFixtures(t)
 

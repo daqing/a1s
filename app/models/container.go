@@ -8,7 +8,8 @@ import (
 )
 
 // Container mirrors the containers table
-// (db/migrate/20260926113000_create_containers.up.sql).
+// (db/migrate/20260926113000_create_containers.up.sql and the later
+// restart_count migration).
 type Container struct {
 	ID            int64      `db:"id"`
 	Name          string     `db:"name"`
@@ -19,6 +20,7 @@ type Container struct {
 	Status        string     `db:"status"`
 	WorkerID      *int64     `db:"worker_id"`
 	RestartPolicy string     `db:"restart_policy"`
+	RestartCount  int64      `db:"restart_count"`
 	Version       int64      `db:"version"`
 	ScheduledAt   *time.Time `db:"scheduled_at"`
 	CreatedAt     time.Time  `db:"created_at"`

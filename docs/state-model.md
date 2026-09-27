@@ -84,10 +84,17 @@ auto-migration transition — both through `UpdateWhereVersion`.
 
 ## Restart policies
 
-`restart_policy` values follow Docker semantics: `no` (default), `on-failure`,
-`always`, `unless-stopped` (suffixes such as `on-failure:3` allowed). The
-monitor (Phase 5) requeues `failed` containers to `pending` only when the
-policy says so.
+`restart_policy` values follow Docker semantics: `no` (default),
+`on-failure[:N]`, `always`, `unless-stopped`. The monitor requeues `failed`
+containers to `pending` only when the policy calls for it (`no` never
+restarts; `on-failure:N` stops after N consecutive failures).
+
+`restart_count` counts consecutive auto-restarts: the monitor increments it
+on each requeue, and a report of `running` resets it to zero. `stopped`
+(exit 0) containers are never auto-restarted — a manual `stop` and a clean
+exit are indistinguishable in the current schema, so A1s errs on the side
+of not resurrecting stopped containers; distinguishing them needs a
+desired-state marker (Phase 6 schema work).
 
 ## containerd state mapping
 

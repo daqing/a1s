@@ -8,24 +8,21 @@ import (
 	"encoding/json"
 	"io"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/daqing/airway/lib/repo"
+	"github.com/daqing/a1s/internal/testdb"
 	"github.com/gin-gonic/gin"
 )
 
 // Setup skips the test without A1S_TEST_DSN, otherwise installs the global
-// database and returns a fresh engine with the routes registered by the
-// caller (injecting them keeps this package free of import cycles with the
-// endpoint packages under test).
+// database (a package-private test database) and returns a fresh engine
+// with the routes registered by the caller (injecting them keeps this
+// package free of import cycles with the endpoint packages under test).
 func Setup(t *testing.T, register func(*gin.Engine)) *gin.Engine {
 	t.Helper()
 
-	dsn := os.Getenv("A1S_TEST_DSN")
-	if dsn == "" {
-		t.Skip("A1S_TEST_DSN not set; skipping database-backed test")
-	}
+	dsn := testdb.DSN(t, "api")
 
 	if _, err := repo.SetupDB(dsn); err != nil {
 		t.Fatalf("setup test database: %v", err)

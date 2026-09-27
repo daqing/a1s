@@ -2,21 +2,18 @@ package scheduler
 
 import (
 	"fmt"
-	"os"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/daqing/a1s/internal/testdb"
 	"github.com/daqing/airway/lib/repo"
 )
 
 func setupTestDB(t *testing.T) {
 	t.Helper()
 
-	dsn := os.Getenv("A1S_TEST_DSN")
-	if dsn == "" {
-		t.Skip("A1S_TEST_DSN not set; skipping database-backed test")
-	}
+	dsn := testdb.DSN(t, "scheduler")
 
 	if _, err := repo.SetupDB(dsn); err != nil {
 		t.Fatalf("setup test database: %v", err)

@@ -76,9 +76,14 @@ func StatusReportAction(c *gin.Context) {
 		return
 	}
 
-	if _, err := models.UpdateWhereVersion[models.Container](row.ID, row.Version, buildingsql.H{
-		"status": req.Status,
-	}); err != nil {
+	vals := buildingsql.H{"status": req.Status}
+	if req.Status == models.ContainerRunning {
+		// a successful (re)start clears the failure streak, so
+		// on-failure:N policies count consecutive failures only
+		vals["restart_count"] = 0
+	}
+
+	if _, err := models.UpdateWhereVersion[models.Container](row.ID, row.Version, vals); err != nil {
 		if errors.Is(err, models.ErrVersionConflict) {
 			respond.Conflict(c, "container changed concurrently, re-read and retry")
 			return

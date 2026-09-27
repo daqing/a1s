@@ -2,11 +2,11 @@ package models
 
 import (
 	"errors"
-	"os"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/daqing/a1s/internal/testdb"
 	"github.com/daqing/airway/lib/repo"
 	buildingsql "github.com/daqing/airway/lib/sql"
 )
@@ -27,10 +27,7 @@ func (versionTestRow) TableName() string { return "version_lock_test_rows" }
 func setupVersionTestDB(t *testing.T) {
 	t.Helper()
 
-	dsn := os.Getenv("A1S_TEST_DSN")
-	if dsn == "" {
-		t.Skip("A1S_TEST_DSN not set; skipping database-backed test")
-	}
+	dsn := testdb.DSN(t, "models")
 
 	if _, err := repo.SetupDB(dsn); err != nil {
 		t.Fatalf("setup test database: %v", err)

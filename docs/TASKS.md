@@ -30,7 +30,7 @@ box until that line is true.
 | 2     | API process + CLI client          | T2.1–T2.9 | 9/9 ✓  |
 | 3     | Worker agent + heartbeats         | T3.1–T3.8 | 8/8 ✓  |
 | 4     | Scheduler                         | T4.1–T4.5 | 5/5 ✓  |
-| 5     | Health monitor                    | T5.1–T5.6 | 3/6    |
+| 5     | Health monitor                    | T5.1–T5.6 | 4/6    |
 | 6     | Hardening and polish              | T6.1–T6.7 | open   |
 
 ---
@@ -325,7 +325,7 @@ box until that line is true.
   *Done when:* containers on a lost worker return to `pending` and get
   rescheduled by Phase 4 machinery without any manual DB edits.
 
-- [ ] **T5.4 — Auto-restart**
+- [x] **T5.4 — Auto-restart**
   Watch for `failed` containers (and exited ones whose `restart_policy` says
   so) and re-queue them as `pending`, version-guarded.
   *Done when:* `kill`-ing a container process externally results in an

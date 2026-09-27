@@ -19,11 +19,11 @@ func (m *multiFlag) Set(value string) error {
 	return nil
 }
 
-const runUsage = "usage: a1s run <image> [--name NAME] [--cmd CMD] [--env KEY=VALUE]..."
+const runUsage = "usage: a1s run <image> [--name NAME] [--cmd CMD] [--restart-policy POLICY] [--env KEY=VALUE]..."
 
 // valueFlags lists the run flags that consume a separate value, so the image
 // can be split out whether it comes before or after the flags.
-var valueFlags = map[string]bool{"--name": true, "--cmd": true, "--env": true}
+var valueFlags = map[string]bool{"--name": true, "--cmd": true, "--env": true, "--restart-policy": true}
 
 // splitImageArg peels the first positional argument (the image) off the
 // command line, supporting both `a1s run nginx --name x` and
@@ -60,6 +60,7 @@ func runContainers(args []string) int {
 
 	name := fs.String("name", "", "container name")
 	command := fs.String("cmd", "", "command override")
+	restartPolicy := fs.String("restart-policy", "", "no | on-failure[:N] | always | unless-stopped")
 	envList := multiFlag{}
 	fs.Var(&envList, "env", "environment variable KEY=VALUE (repeatable)")
 
@@ -71,6 +72,9 @@ func runContainers(args []string) int {
 	body := map[string]any{"image": image}
 	if *name != "" {
 		body["name"] = *name
+	}
+	if *restartPolicy != "" {
+		body["restart_policy"] = *restartPolicy
 	}
 	if *command != "" {
 		body["command"] = *command
