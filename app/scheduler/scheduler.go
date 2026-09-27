@@ -16,8 +16,8 @@ import (
 
 	"github.com/daqing/a1s/app/models"
 	"github.com/daqing/airway/lib/repo"
-	"github.com/daqing/airway/lib/utils"
 	buildingsql "github.com/daqing/airway/lib/sql"
+	"github.com/daqing/airway/lib/utils"
 )
 
 // defaultInterval matches A1S_SCHEDULER_INTERVAL in .env.example.

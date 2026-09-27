@@ -31,7 +31,7 @@ box until that line is true.
 | 3     | Worker agent + heartbeats         | T3.1–T3.8 | 8/8 ✓  |
 | 4     | Scheduler                         | T4.1–T4.5 | 5/5 ✓  |
 | 5     | Health monitor                    | T5.1–T5.6 | 6/6 ✓  |
-| 6     | Hardening and polish              | T6.1–T6.7 | open   |
+| 6     | Hardening and polish              | T6.1–T6.7 | 1/7    |
 
 ---
 
@@ -349,7 +349,7 @@ box until that line is true.
 
 ## Phase 6 — Reconciliation, hardening, and polish
 
-- [ ] **T6.1 — Reconciliation loop**
+- [x] **T6.1 — Reconciliation loop**
   Inside the monitor (or standalone): periodically compare desired state (DB)
   with actual state (worker reports / runtime inspection) and repair drift —
   unexpected exits → restart policy, missing containers → re-queue, ghost

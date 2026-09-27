@@ -3,8 +3,10 @@ package worker
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -478,12 +480,14 @@ func envOr(key, fallback string) string {
 // reportStatuses computes the mapped status of every labeled container and
 // reports it to the API, so the database reflects reality even without
 // commands. Failures are logged and survived.
-func (rt *containerRuntime) reportStatuses(ctx context.Context, client *apiClient) {
+func (rt *containerRuntime) reportStatuses(ctx context.Context, client *apiClient, workerID int64) {
 	cd, err := rt.cdClient(ctx)
 	if err != nil {
 		log.Printf("report statuses: containerd unavailable: %v", err)
 		return
 	}
+
+	manifest := make([]manifestEntry, 0, 8)
 
 	containers, err := cd.Containers(ctx)
 	if err != nil {
@@ -515,11 +519,25 @@ func (rt *containerRuntime) reportStatuses(ctx context.Context, client *apiClien
 		}
 
 		if err := client.reportStatus(ctx, containerID, status); err != nil {
+			// a 404 means the DB row is gone: the runtime container is a
+			// ghost left behind by a deleted row, so clean it up
+			var apiErr *apiError
+			if errors.As(err, &apiErr) && apiErr.Status == http.StatusNotFound {
+				log.Printf("report statuses: container %d (%s) has no row, removing ghost", containerID, container.ID())
+				rt.removeExisting(ctx, cd, container.ID())
+				continue
+			}
+
 			log.Printf("report statuses: report for container %d failed: %v", containerID, err)
 			continue
 		}
 
+		manifest = append(manifest, manifestEntry{ID: containerID, Status: status})
 		log.Printf("reported container %d (%s) as %s", containerID, container.ID(), status)
+	}
+
+	if err := client.reportManifest(ctx, workerID, manifest); err != nil {
+		log.Printf("report manifest failed: %v", err)
 	}
 }
 

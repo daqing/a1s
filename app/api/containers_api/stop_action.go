@@ -3,6 +3,7 @@ package containers_api
 import (
 	"errors"
 	"fmt"
+	"log"
 	"strconv"
 
 	"github.com/daqing/a1s/app/api/respond"
@@ -50,6 +51,16 @@ func StopAction(c *gin.Context) {
 
 		respond.Internal(c, err)
 		return
+	}
+
+	// the row carries the desired state; the owning worker learns about the
+	// stop through the command channel and kills the runtime task
+	if row.WorkerID != nil {
+		if _, err := models.QueueStopCommand(row.ID, *row.WorkerID); err != nil {
+			// the reconcile pass re-issues lost stop commands, so a failed
+			// queue must not fail the API call
+			log.Printf("queue stop command for container %d: %v", row.ID, err)
+		}
 	}
 
 	updated, err := repo.FindByID[models.Container](buildingsql.IdType(id))

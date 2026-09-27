@@ -14,6 +14,7 @@ func Routes(g *gin.RouterGroup) {
 	g.GET("/workers/:id/commands", ListCommandsAction)
 	g.POST("/commands/:id/result", CommandResultAction)
 	g.PUT("/containers/:id/status", StatusReportAction)
+	g.PUT("/workers/:id/manifest", ManifestAction)
 }
 
 // Mount registers the internal group under the /api/v1 group with the

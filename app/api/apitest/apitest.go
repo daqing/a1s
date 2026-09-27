@@ -10,8 +10,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/daqing/airway/lib/repo"
 	"github.com/daqing/a1s/internal/testdb"
+	"github.com/daqing/airway/lib/repo"
 	"github.com/gin-gonic/gin"
 )
 
