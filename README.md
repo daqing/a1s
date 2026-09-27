@@ -65,8 +65,9 @@ over HTTP.
 - **Failure detection**: workers send **heartbeats** to the control plane
   at regular intervals; a worker whose heartbeat times out is declared
   lost, and its containers are rescheduled onto other workers.
-- **Container runtime**: the same approach as Kubernetes — **containerd**
-  via CRI, rather than a direct Docker API.
+- **Container runtime**: **containerd** — the same engine Kubernetes uses —
+  reached through its official Go client, rather than a direct Docker API.
+  The client choice is recorded in `docs/architecture.md`.
 - **Worker agent**: a process on each worker node that manages the local
   container lifecycle (create, start, stop, inspect) through the containerd
   client, and reports status and heartbeats to the control plane.
