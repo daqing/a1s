@@ -50,7 +50,7 @@ func main() {
 		fmt.Fprintln(os.Stdout)
 		cmd.Version = versionString()
 		cmd.Run([]string{"help"})
-	case "run", "ps":
+	case "run", "ps", "stop", "rm", "workers":
 		loadCLIEnv()
 		os.Exit(cli.Main(args[0], args[1:]))
 	case "scheduler", "monitor", "worker":
@@ -102,6 +102,9 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "client commands (talk to the API at A1S_API_URL):")
 	fmt.Fprintln(w, "  run        a1s run <image> [--name NAME] [--cmd CMD] [--env KEY=VALUE]...")
 	fmt.Fprintln(w, "  ps         list containers")
+	fmt.Fprintln(w, "  stop       a1s stop <id>")
+	fmt.Fprintln(w, "  rm         a1s rm <id>")
+	fmt.Fprintln(w, "  workers    list workers")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "any other command is dispatched to the Airway CLI (repl, db:migrate, generate, ...); the command list follows")
 }

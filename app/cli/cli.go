@@ -16,6 +16,12 @@ func Main(command string, args []string) int {
 		return runContainers(args)
 	case "ps":
 		return psContainers(args)
+	case "stop":
+		return stopContainer(args)
+	case "rm":
+		return removeContainer(args)
+	case "workers":
+		return listWorkers(args)
 	default:
 		fmt.Fprintf(os.Stderr, "a1s: unknown client command %q\n", command)
 		return 2

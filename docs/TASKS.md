@@ -27,7 +27,7 @@ box until that line is true.
 | ----- | --------------------------------- | -------- | ------ |
 | 0     | Skeleton cleanup and commands     | T0.1–T0.5 | 5/5 ✓  |
 | 1     | Data model and optimistic locking | T1.1–T1.7 | 7/7 ✓  |
-| 2     | API process + CLI client          | T2.1–T2.9 | 7/9    |
+| 2     | API process + CLI client          | T2.1–T2.9 | 8/9    |
 | 3     | Worker agent + heartbeats         | T3.1–T3.8 | open   |
 | 4     | Scheduler                         | T4.1–T4.5 | open   |
 | 5     | Health monitor                    | T5.1–T5.6 | open   |
@@ -191,7 +191,7 @@ box until that line is true.
   *Done when:* against a running `a1s api`, `a1s run nginx` then `a1s ps`
   shows the pending row; no API running → friendly error, exit code ≠ 0.
 
-- [ ] **T2.8 — CLI: `stop`, `rm`, `workers` + exit codes**
+- [x] **T2.8 — CLI: `stop`, `rm`, `workers` + exit codes**
   Same client helper; exit code 0 on success, 1 on API error, 2 on usage.
   *Done when:* full CRUD cycle works from the CLI alone.
 
