@@ -38,36 +38,7 @@ func seedSelectionFixtures(t *testing.T) (busyID, idleID, lostID int64) {
 			`DELETE FROM workers WHERE id IN ($1, $2, $3)`, busyID, idleID, lostID)
 	})
 
-	// quarantine: remember the prior status of every other worker, park them
-	// as lost for the duration of the test, restore afterwards
-	type prior struct {
-		id     int64
-		status string
-	}
-	var others []prior
-	rows, err := repo.CurrentDB().Conn().Query(
-		`SELECT id, status FROM workers WHERE id NOT IN ($1, $2, $3)`, busyID, idleID, lostID)
-	if err != nil {
-		t.Fatalf("list other workers: %v", err)
-	}
-	for rows.Next() {
-		var p prior
-		if err := rows.Scan(&p.id, &p.status); err != nil {
-			rows.Close()
-			t.Fatalf("scan other worker: %v", err)
-		}
-		others = append(others, p)
-	}
-	rows.Close()
-
-	for _, p := range others {
-		apitestExec(t, `UPDATE workers SET status = 'lost' WHERE id = $1`, p.id)
-	}
-	t.Cleanup(func() {
-		for _, p := range others {
-			repo.CurrentDB().Conn().Exec(`UPDATE workers SET status = $2 WHERE id = $1`, p.id, p.status)
-		}
-	})
+	quarantineOtherWorkers(t, busyID, idleID, lostID)
 
 	apitestExec(t,
 		`UPDATE workers SET status = 'lost' WHERE id = $1`, lostID)

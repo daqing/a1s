@@ -4,6 +4,7 @@ package scheduler
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -63,9 +64,9 @@ func Main(args []string) int {
 	return 0
 }
 
-// runLoop observes pending containers on every tick until ctx is canceled.
+// runLoop schedules pending containers on every tick until ctx is canceled.
 func runLoop(ctx context.Context, interval time.Duration) {
-	observe()
+	scheduleRound()
 
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
@@ -75,40 +76,109 @@ func runLoop(ctx context.Context, interval time.Duration) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			observe()
+			scheduleRound()
 		}
 	}
 }
 
-// observe logs the containers waiting for assignment. Assignment itself
-// lands in T4.2/T4.3.
-func observe() ([]*models.Container, error) {
+// scheduleRound assigns pending containers to workers. Each assignment goes
+// through the version lock, so concurrent scheduler instances can never
+// double-assign; a lost race is skipped and the container waits for the
+// next round.
+func scheduleRound() {
 	pending, err := pendingContainers()
 	if err != nil {
-		log.Printf("observe failed: %v", err)
-		return nil, err
-	}
-
-	active, err := activeWorkers()
-	if err != nil {
-		log.Printf("observe failed: %v", err)
-		return nil, err
+		log.Printf("schedule round failed: %v", err)
+		return
 	}
 
 	if len(pending) == 0 {
-		return nil, nil
-	}
-
-	if active == 0 {
-		log.Printf("%d pending container(s) waiting, but no active worker is registered", len(pending))
-		return pending, nil
+		return
 	}
 
 	for _, c := range pending {
-		log.Printf("pending container %d (%s, image %s) ready for assignment", c.ID, c.Name, c.Image)
+		// re-select per container: every assignment changes the load
+		worker, err := selectWorker()
+		if err != nil {
+			log.Printf("schedule round failed: %v", err)
+			return
+		}
+
+		if worker == nil {
+			log.Printf("%d pending container(s) waiting, but no active worker is registered", len(pending))
+			return
+		}
+
+		assigned, err := assign(c, worker)
+		if err != nil {
+			log.Printf("assign container %d failed: %v", c.ID, err)
+			continue
+		}
+
+		if !assigned {
+			log.Printf("container %d: lost the assignment race, skipping", c.ID)
+			continue
+		}
+
+		if err := queueStartCommand(c, worker); err != nil {
+			// the row is scheduled but its start command is missing;
+			// reconciliation (Phase 6) requeues such strays
+			log.Printf("container %d assigned to worker %d but queueing start failed: %v", c.ID, worker.ID, err)
+			continue
+		}
+
+		log.Printf("container %d (%s) scheduled on worker %d (%s)", c.ID, c.Name, worker.ID, worker.Name)
+	}
+}
+
+// assign flips one pending container to scheduled on the given worker: the
+// version and the worker_id IS NULL guards together make double assignment
+// impossible; rows-affected = 0 means another scheduler instance won.
+func assign(c *models.Container, worker *models.Worker) (bool, error) {
+	var t models.Container
+
+	b := buildingsql.UpdateTable(buildingsql.TableFor(t)).Set(buildingsql.H{
+		"worker_id":    worker.ID,
+		"status":       models.ContainerScheduled,
+		"scheduled_at": buildingsql.Func("now"),
+		"version":      buildingsql.Op(buildingsql.Column("version"), "+", 1),
+		"updated_at":   buildingsql.Func("now"),
+	}).Where(buildingsql.AllOf(
+		buildingsql.FieldEq(buildingsql.FieldFor(t, "id"), c.ID),
+		buildingsql.FieldEq(buildingsql.FieldFor(t, "version"), c.Version),
+		buildingsql.IsNull("worker_id"),
+	))
+
+	affected, err := repo.UpdateAffected(repo.CurrentDB(), b)
+	if err != nil {
+		return false, err
 	}
 
-	return pending, nil
+	return affected == 1, nil
+}
+
+// queueStartCommand enqueues the start command the winning worker executes.
+func queueStartCommand(c *models.Container, worker *models.Worker) error {
+	payload, err := json.Marshal(map[string]any{
+		"id":      c.ID,
+		"image":   c.Image,
+		"name":    c.Name,
+		"command": c.Command,
+		"args":    c.Args,
+		"env":     c.Env,
+	})
+	if err != nil {
+		return err
+	}
+
+	_, err = repo.CreateFrom[models.Command](buildingsql.H{
+		"worker_id":    worker.ID,
+		"container_id": c.ID,
+		"action":       models.CommandStart,
+		"payload":      models.JSONB(payload),
+	})
+
+	return err
 }
 
 // pendingContainers lists unassigned containers in FIFO order.
