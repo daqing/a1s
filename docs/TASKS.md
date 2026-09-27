@@ -27,7 +27,7 @@ box until that line is true.
 | ----- | --------------------------------- | -------- | ------ |
 | 0     | Skeleton cleanup and commands     | T0.1–T0.5 | 5/5 ✓  |
 | 1     | Data model and optimistic locking | T1.1–T1.7 | 7/7 ✓  |
-| 2     | API process + CLI client          | T2.1–T2.9 | 3/9    |
+| 2     | API process + CLI client          | T2.1–T2.9 | 4/9    |
 | 3     | Worker agent + heartbeats         | T3.1–T3.8 | open   |
 | 4     | Scheduler                         | T4.1–T4.5 | open   |
 | 5     | Health monitor                    | T5.1–T5.6 | open   |
@@ -164,7 +164,7 @@ box until that line is true.
   `GET /api/v1/containers/:id` (single, 404 via the error envelope).
   *Done when:* rows created in T2.2 round-trip through both endpoints.
 
-- [ ] **T2.4 — Stop and remove endpoints**
+- [x] **T2.4 — Stop and remove endpoints**
   `POST /api/v1/containers/:id/stop` and `DELETE /api/v1/containers/:id` as
   desired-state transitions: stop moves `running`→`stopped` (recorded, the
   worker acts later), remove deletes the row (or tombstones it — follow the

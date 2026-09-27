@@ -8,4 +8,6 @@ func Routes(g *gin.RouterGroup) {
 	g.POST("/containers", CreateAction)
 	g.GET("/containers", ListAction)
 	g.GET("/containers/:id", InspectAction)
+	g.POST("/containers/:id/stop", StopAction)
+	g.DELETE("/containers/:id", RemoveAction)
 }
