@@ -11,6 +11,7 @@ import (
 	// Side-effect import: registers the project models in the REPL namespace.
 	_ "github.com/daqing/a1s/app/models"
 
+	"github.com/daqing/a1s/app/cli"
 	"github.com/daqing/airway/cmd"
 	"github.com/daqing/airway/lib/plugin"
 	"github.com/daqing/airway/lib/redis_client"
@@ -49,6 +50,9 @@ func main() {
 		fmt.Fprintln(os.Stdout)
 		cmd.Version = versionString()
 		cmd.Run([]string{"help"})
+	case "run", "ps":
+		loadCLIEnv()
+		os.Exit(cli.Main(args[0], args[1:]))
 	case "scheduler", "monitor", "worker":
 		notImplemented(args[0])
 	default:
@@ -94,6 +98,10 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "  scheduler  start the scheduling loop (not implemented yet)")
 	fmt.Fprintln(w, "  monitor    start the health monitor (not implemented yet)")
 	fmt.Fprintln(w, "  worker     start the worker agent (not implemented yet)")
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "client commands (talk to the API at A1S_API_URL):")
+	fmt.Fprintln(w, "  run        a1s run <image> [--name NAME] [--cmd CMD] [--env KEY=VALUE]...")
+	fmt.Fprintln(w, "  ps         list containers")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "any other command is dispatched to the Airway CLI (repl, db:migrate, generate, ...); the command list follows")
 }
