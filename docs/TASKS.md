@@ -28,7 +28,7 @@ box until that line is true.
 | 0     | Skeleton cleanup and commands     | T0.1–T0.5 | 5/5 ✓  |
 | 1     | Data model and optimistic locking | T1.1–T1.7 | 7/7 ✓  |
 | 2     | API process + CLI client          | T2.1–T2.9 | 9/9 ✓  |
-| 3     | Worker agent + heartbeats         | T3.1–T3.8 | 1/8    |
+| 3     | Worker agent + heartbeats         | T3.1–T3.8 | 2/8    |
 | 4     | Scheduler                         | T4.1–T4.5 | open   |
 | 5     | Health monitor                    | T5.1–T5.6 | open   |
 | 6     | Hardening and polish              | T6.1–T6.7 | open   |
@@ -213,7 +213,7 @@ box until that line is true.
   Docker or brew), prints namespaces, and the decision is recorded in
   `docs/state-model.md` or a new short `docs/architecture.md`.
 
-- [ ] **T3.2 — Internal API surface + shared token**
+- [x] **T3.2 — Internal API surface + shared token**
   Create `/api/v1/internal/...` group protected by a bearer token
   (`A1S_INTERNAL_TOKEN`, reject with 401 when unset on either side), and add
   `POST /api/v1/internal/heartbeat` which upserts the worker row by name and

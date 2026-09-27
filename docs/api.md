@@ -118,8 +118,29 @@ Lists workers, most recently heartbeating first.
 
 Responses: `200` with `{ "workers": [ worker, ... ] }`.
 
-## Not covered here
+## Internal API (worker-facing)
 
-Internal endpoints (`/api/v1/internal/...`: heartbeat, command channel,
-status reports) are defined in Phase 3 and protected by
-`A1S_INTERNAL_TOKEN`; they never appear in this public contract.
+All `/api/v1/internal/...` endpoints require `Authorization: Bearer
+<A1S_INTERNAL_TOKEN>`. The token is shared between the API process and every
+worker; when either side has no token configured, every internal request is
+rejected with `401 {"error": {"code": "unauthorized", ...}}` — the internal
+surface stays closed by default.
+
+### `POST /api/v1/internal/heartbeat`
+
+Upserts the worker row by name and refreshes `last_heartbeat_at`; the worker
+reports itself `active` (a lost worker heartbeating again is its explicit
+re-registration, see `docs/state-model.md`).
+
+Request:
+
+```json
+{ "name": "w1", "address": "10.0.0.2:9001" }
+```
+
+Responses: `200` with `{ "id": 1, "name": "w1", "status": "active" }`;
+`400` `validation_error` (missing name); `409` `conflict` (lost a version
+race — retry on the next beat); `401` when the token check fails.
+
+Later phases extend this group with the command channel (T3.4) and status
+reports (T3.7).
