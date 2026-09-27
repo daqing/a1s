@@ -29,7 +29,7 @@ box until that line is true.
 | 1     | Data model and optimistic locking | T1.1–T1.7 | 7/7 ✓  |
 | 2     | API process + CLI client          | T2.1–T2.9 | 9/9 ✓  |
 | 3     | Worker agent + heartbeats         | T3.1–T3.8 | 8/8 ✓  |
-| 4     | Scheduler                         | T4.1–T4.5 | open   |
+| 4     | Scheduler                         | T4.1–T4.5 | 5/5 ✓  |
 | 5     | Health monitor                    | T5.1–T5.6 | open   |
 | 6     | Hardening and polish              | T6.1–T6.7 | open   |
 
@@ -265,21 +265,21 @@ box until that line is true.
 
 ## Phase 4 — Scheduler
 
-- [ ] **T4.1 — Scheduler loop skeleton**
+- [x] **T4.1 — Scheduler loop skeleton**
   `a1s scheduler`: poll every `A1S_SCHEDULER_INTERVAL` (default 2–5 s) for
   containers with `status='pending' AND worker_id IS NULL`; log candidates,
   assign nothing yet. Graceful behavior on zero active workers.
   *Done when:* scheduler logs pending containers it observes; `a1s run`
   followed by scheduler startup shows the row being noticed.
 
-- [ ] **T4.2 — Worker selection query**
+- [x] **T4.2 — Worker selection query**
   Pick the `active` worker with the fewest running containers, via
   `lib/sql`. Leave the structure open for later policies (resources, labels,
   spread/packing) but implement only least-loaded now.
   *Done when:* with hand-seeded worker/container rows the query returns the
   expected worker, covered by a test.
 
-- [ ] **T4.3 — Assignment via optimistic locking**
+- [x] **T4.3 — Assignment via optimistic locking**
   `UPDATE containers SET worker_id=?, status='scheduled', version=version+1
   WHERE id=? AND version=? AND worker_id IS NULL`; a conflict means another
   scheduler instance won — skip silently. Then queue the `start` command for
@@ -287,14 +287,14 @@ box until that line is true.
   *Done when:* running two scheduler instances against the same pending row
   results in exactly one assignment and one queued command.
 
-- [ ] **T4.4 — End-to-end start flow**
+- [x] **T4.4 — End-to-end start flow**
   The worker picks up the `start` command (channel from T3.4), runs it
   (T3.5), reports `running`; on start failure reports `failed`.
   *Done when:* `a1s run nginx` with api + scheduler + worker all running
   ends with a container visible as `running` in both `a1s ps` and
   `ctr`/`crictl`.
 
-- [ ] **T4.5 — Phase 4 check (scheduler chaos)**
+- [x] **T4.5 — Phase 4 check (scheduler chaos)**
   *Done when:* the full flow above works, and killing + restarting the
   scheduler mid-test produces no duplicate assignments and no stuck
   containers.
