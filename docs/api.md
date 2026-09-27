@@ -118,8 +118,84 @@ Lists workers, most recently heartbeating first.
 
 Responses: `200` with `{ "workers": [ worker, ... ] }`.
 
-## Not covered here
+## Internal API (worker-facing)
 
-Internal endpoints (`/api/v1/internal/...`: heartbeat, command channel,
-status reports) are defined in Phase 3 and protected by
-`A1S_INTERNAL_TOKEN`; they never appear in this public contract.
+All `/api/v1/internal/...` endpoints require `Authorization: Bearer
+<A1S_INTERNAL_TOKEN>`. The token is shared between the API process and every
+worker; when either side has no token configured, every internal request is
+rejected with `401 {"error": {"code": "unauthorized", ...}}` — the internal
+surface stays closed by default.
+
+### `POST /api/v1/internal/heartbeat`
+
+Upserts the worker row by name and refreshes `last_heartbeat_at`; the worker
+reports itself `active` (a lost worker heartbeating again is its explicit
+re-registration, see `docs/state-model.md`).
+
+Request:
+
+```json
+{ "name": "w1", "address": "10.0.0.2:9001" }
+```
+
+Responses: `200` with `{ "id": 1, "name": "w1", "status": "active" }`;
+`400` `validation_error` (missing name); `409` `conflict` (lost a version
+race — retry on the next beat); `401` when the token check fails.
+
+### Command channel
+
+Vocabulary and payloads — every action names its container by name:
+
+| action    | payload                                     |
+| --------- | ------------------------------------------- |
+| `start`   | `{"image": "...", "name": "...", "command": "", "args": [], "env": {}}` (`command`/`args`/`env` optional) |
+| `stop`    | `{"name": "..."}`                            |
+| `remove`  | `{"name": "..."}`                            |
+| `inspect` | `{"name": "..."}`                            |
+
+Results carry `{"ok": true|false, "error": "...", "detail": {...}}`;
+`inspect` detail holds `{"exists": true, "status": "running", "containerd": "RUNNING", "exit_code": 0}`
+with the status mapped per `docs/state-model.md`. Nothing generates
+commands until the scheduler lands (Phase 4).
+
+Delivery is at-least-once by polling: `GET .../commands` marks each handed
+command `delivered` (queued → delivered → done). A worker that dies after
+fetching but before reporting leaves its commands stuck in `delivered`;
+reclaiming those is Phase 6 reconciliation work.
+
+### `GET /api/v1/internal/workers/:id/commands`
+
+Returns the worker's queued commands in FIFO order and marks them
+delivered.
+
+Responses: `200` with
+`{ "commands": [ { "id": 7, "action": "start", "container_id": 5, "payload": {} } ] }`
+(an empty array when nothing is queued); `404` for a malformed worker id.
+
+### `PUT /api/v1/internal/containers/:id/status`
+
+Applies an observed status report to the container row under the version
+lock. Allowed reports: `running`, `stopped`, `failed`; they only apply from
+`scheduled` or `running` rows, so the reporter can never override a
+desired-state transition (a row the API set to `stopped` stays stopped).
+Same-status reports are idempotent no-ops.
+
+Request: `{ "status": "running" }`
+
+Responses: `200` with
+`{ "id": 5, "status": "running", "applied": true }` (`applied: false`
+carries a `reason` when the report legally does not apply); `400`
+`validation_error` for an unmapped status; `404` unknown container; `409`
+on a lost version race (the next report round retries).
+
+### `POST /api/v1/internal/commands/:id/result`
+
+Marks the command done and stores the reported result verbatim:
+
+```json
+{ "ok": true, "detail": { "state": "running" } }
+```
+
+Responses: `200` with `{ "id": 7, "status": "done" }`; `404` unknown
+command; `409` conflict (already done, or a version race — re-fetch and
+report once); `400` for a malformed body.

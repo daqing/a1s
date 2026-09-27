@@ -28,7 +28,7 @@ box until that line is true.
 | 0     | Skeleton cleanup and commands     | T0.1–T0.5 | 5/5 ✓  |
 | 1     | Data model and optimistic locking | T1.1–T1.7 | 7/7 ✓  |
 | 2     | API process + CLI client          | T2.1–T2.9 | 9/9 ✓  |
-| 3     | Worker agent + heartbeats         | T3.1–T3.8 | open   |
+| 3     | Worker agent + heartbeats         | T3.1–T3.8 | 8/8 ✓  |
 | 4     | Scheduler                         | T4.1–T4.5 | open   |
 | 5     | Health monitor                    | T5.1–T5.6 | open   |
 | 6     | Hardening and polish              | T6.1–T6.7 | open   |
@@ -204,7 +204,7 @@ box until that line is true.
 
 ## Phase 3 — Worker agent + heartbeats
 
-- [ ] **T3.1 — containerd client spike and decision**
+- [x] **T3.1 — containerd client spike and decision**
   Decide between the high-level containerd Go client and raw CRI (roadmap
   leans CRI-via-containerd; pick one), add the dependency, and write a
   throwaway connection check (temporary subcommand or test) that lists
@@ -213,7 +213,7 @@ box until that line is true.
   Docker or brew), prints namespaces, and the decision is recorded in
   `docs/state-model.md` or a new short `docs/architecture.md`.
 
-- [ ] **T3.2 — Internal API surface + shared token**
+- [x] **T3.2 — Internal API surface + shared token**
   Create `/api/v1/internal/...` group protected by a bearer token
   (`A1S_INTERNAL_TOKEN`, reject with 401 when unset on either side), and add
   `POST /api/v1/internal/heartbeat` which upserts the worker row by name and
@@ -221,14 +221,14 @@ box until that line is true.
   *Done when:* curl with the token upserts and refreshes a worker row;
   without the token the endpoint 401s.
 
-- [ ] **T3.3 — Worker boot + heartbeat loop**
+- [x] **T3.3 — Worker boot + heartbeat loop**
   `a1s worker --name w1` (plus `A1S_API_URL`, `A1S_INTERNAL_TOKEN`): on boot
   register via heartbeat, then loop every `A1S_HEARTBEAT_INTERVAL` (default
   5 s). Log locally; keep the loop resilient to transient API errors.
   *Done when:* with `a1s api` + `a1s worker` running, `last_heartbeat_at`
   advances in the DB and `a1s workers` shows the worker as `active`.
 
-- [ ] **T3.4 — Command channel**
+- [x] **T3.4 — Command channel**
   `GET /api/v1/internal/workers/:id/commands` (simple polling every few
   seconds for now) plus a result-reporting endpoint. Define the command
   vocabulary (`start`, `stop`, `remove`, `inspect`) in `docs/api.md`. The API
@@ -236,27 +236,27 @@ box until that line is true.
   *Done when:* a hand-inserted command row is fetched by the worker and its
   reported result lands in the DB.
 
-- [ ] **T3.5 — containerd lifecycle: pull, create, start**
+- [x] **T3.5 — containerd lifecycle: pull, create, start**
   Worker-side executor for `start`: pull image (if missing), create the
   container, start it, using the client style chosen in T3.1.
   *Done when:* a hand-queued `start` command results in a running container
   verifiable with `ctr`/`crictl` on the machine.
 
-- [ ] **T3.6 — containerd lifecycle: stop, remove, status mapping**
+- [x] **T3.6 — containerd lifecycle: stop, remove, status mapping**
   Executor for `stop`, `remove`, `inspect`; map containerd task/container
   states onto the `containers` statuses from `docs/state-model.md`.
   *Done when:* stop→running exits cleanly; remove cleans up both container
   and task; inspect reports a correct mapped status for a running and a
   stopped container.
 
-- [ ] **T3.7 — Status reporting loop**
+- [x] **T3.7 — Status reporting loop**
   Worker periodically reconciles actual containerd state into the API via
   `PUT /api/v1/internal/containers/:id/status` (optimistic-locked), so the DB
   reflects reality even without commands.
   *Done when:* externally killing a container (via `ctr`) is reflected in
   the DB within one reporting interval.
 
-- [ ] **T3.8 — Phase 3 check**
+- [x] **T3.8 — Phase 3 check**
   *Done when:* on a single machine, `a1s api` + `a1s worker` run; heartbeats
   appear in the DB; pulling and starting `nginx` through containerd works
   end to end via a manually queued command or temporary debug endpoint.

@@ -5,6 +5,7 @@ import (
 
 	"github.com/daqing/a1s/app/api/containers_api"
 	"github.com/daqing/a1s/app/api/health_api"
+	"github.com/daqing/a1s/app/api/internal_api"
 	"github.com/daqing/a1s/app/api/workers_api"
 	"github.com/daqing/airway/lib/plugin"
 )
@@ -33,6 +34,7 @@ func apiGroupRoutes(r *gin.Engine) {
 	v1 := r.Group("/api/v1")
 	containers_api.Routes(v1)
 	workers_api.Routes(v1)
+	internal_api.Mount(v1)
 }
 
 // HealthRoutes registers the internal health-check route. It stays reachable at
