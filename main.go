@@ -12,6 +12,7 @@ import (
 	_ "github.com/daqing/a1s/app/models"
 
 	"github.com/daqing/a1s/app/cli"
+	"github.com/daqing/a1s/app/worker"
 	"github.com/daqing/airway/cmd"
 	"github.com/daqing/airway/lib/plugin"
 	"github.com/daqing/airway/lib/redis_client"
@@ -53,7 +54,10 @@ func main() {
 	case "run", "ps", "stop", "rm", "workers":
 		loadCLIEnv()
 		os.Exit(cli.Main(args[0], args[1:]))
-	case "scheduler", "monitor", "worker":
+	case "worker":
+		loadCLIEnv()
+		os.Exit(worker.Main(args[1:]))
+	case "scheduler", "monitor":
 		notImplemented(args[0])
 	default:
 		cmd.Version = versionString()
@@ -97,7 +101,7 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "  api        start the HTTP control plane API (alias: server)")
 	fmt.Fprintln(w, "  scheduler  start the scheduling loop (not implemented yet)")
 	fmt.Fprintln(w, "  monitor    start the health monitor (not implemented yet)")
-	fmt.Fprintln(w, "  worker     start the worker agent (not implemented yet)")
+	fmt.Fprintln(w, "  worker     start the worker agent on this node")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "client commands (talk to the API at A1S_API_URL):")
 	fmt.Fprintln(w, "  run        a1s run <image> [--name NAME] [--cmd CMD] [--env KEY=VALUE]...")
