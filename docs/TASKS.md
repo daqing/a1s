@@ -27,7 +27,7 @@ box until that line is true.
 | ----- | --------------------------------- | -------- | ------ |
 | 0     | Skeleton cleanup and commands     | T0.1–T0.5 | 5/5 ✓  |
 | 1     | Data model and optimistic locking | T1.1–T1.7 | 7/7 ✓  |
-| 2     | API process + CLI client          | T2.1–T2.9 | 2/9    |
+| 2     | API process + CLI client          | T2.1–T2.9 | 3/9    |
 | 3     | Worker agent + heartbeats         | T3.1–T3.8 | open   |
 | 4     | Scheduler                         | T4.1–T4.5 | open   |
 | 5     | Health monitor                    | T5.1–T5.6 | open   |
@@ -159,7 +159,7 @@ box until that line is true.
   *Done when:* `curl` create returns 201 with the row JSON; invalid input
   returns the error envelope with 4xx; the row is visible in PostgreSQL.
 
-- [ ] **T2.3 — List and inspect endpoints**
+- [x] **T2.3 — List and inspect endpoints**
   `GET /api/v1/containers` (list with status, newest first) and
   `GET /api/v1/containers/:id` (single, 404 via the error envelope).
   *Done when:* rows created in T2.2 round-trip through both endpoints.

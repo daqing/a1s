@@ -6,4 +6,6 @@ import "github.com/gin-gonic/gin"
 // (see docs/api.md).
 func Routes(g *gin.RouterGroup) {
 	g.POST("/containers", CreateAction)
+	g.GET("/containers", ListAction)
+	g.GET("/containers/:id", InspectAction)
 }
