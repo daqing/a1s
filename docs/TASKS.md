@@ -28,7 +28,7 @@ box until that line is true.
 | 0     | Skeleton cleanup and commands     | T0.1–T0.5 | 5/5 ✓  |
 | 1     | Data model and optimistic locking | T1.1–T1.7 | 7/7 ✓  |
 | 2     | API process + CLI client          | T2.1–T2.9 | 9/9 ✓  |
-| 3     | Worker agent + heartbeats         | T3.1–T3.8 | 6/8    |
+| 3     | Worker agent + heartbeats         | T3.1–T3.8 | 7/8    |
 | 4     | Scheduler                         | T4.1–T4.5 | open   |
 | 5     | Health monitor                    | T5.1–T5.6 | open   |
 | 6     | Hardening and polish              | T6.1–T6.7 | open   |
@@ -249,7 +249,7 @@ box until that line is true.
   and task; inspect reports a correct mapped status for a running and a
   stopped container.
 
-- [ ] **T3.7 — Status reporting loop**
+- [x] **T3.7 — Status reporting loop**
   Worker periodically reconciles actual containerd state into the API via
   `PUT /api/v1/internal/containers/:id/status` (optimistic-locked), so the DB
   reflects reality even without commands.

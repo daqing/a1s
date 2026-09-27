@@ -60,6 +60,40 @@ func (c *apiClient) fetchCommands(ctx context.Context, workerID int64) ([]comman
 	return out.Commands, nil
 }
 
+// reportStatus puts one observed container status; the API applies it
+// under the version lock when the transition is legal.
+func (c *apiClient) reportStatus(ctx context.Context, containerID int64, status string) error {
+	body, err := json.Marshal(map[string]string{"status": status})
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut,
+		fmt.Sprintf("%s/api/v1/internal/containers/%d/status", c.baseURL, containerID), strings.NewReader(string(body)))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+c.token)
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	payload, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return apiErrorFromBody(resp.StatusCode, payload)
+	}
+
+	return nil
+}
+
 // reportResult posts one command result; the API marks the command done.
 func (c *apiClient) reportResult(ctx context.Context, commandID int64, result commandResult) error {
 	body, err := json.Marshal(result)

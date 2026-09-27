@@ -10,16 +10,16 @@ import (
 // Command mirrors the commands table
 // (db/migrate/20260927100000_create_commands.up.sql).
 type Command struct {
-	ID          int64      `db:"id"`
-	WorkerID    int64      `db:"worker_id"`
-	ContainerID *int64     `db:"container_id"`
-	Action      string     `db:"action"`
-	Payload     JSONB      `db:"payload"`
-	Status      string     `db:"status"`
-	Result      JSONB      `db:"result"`
-	Version     int64      `db:"version"`
-	CreatedAt   time.Time  `db:"created_at"`
-	UpdatedAt   time.Time  `db:"updated_at"`
+	ID          int64     `db:"id"`
+	WorkerID    int64     `db:"worker_id"`
+	ContainerID *int64    `db:"container_id"`
+	Action      string    `db:"action"`
+	Payload     JSONB     `db:"payload"`
+	Status      string    `db:"status"`
+	Result      JSONB     `db:"result"`
+	Version     int64     `db:"version"`
+	CreatedAt   time.Time `db:"created_at"`
+	UpdatedAt   time.Time `db:"updated_at"`
 }
 
 const (

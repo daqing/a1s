@@ -117,7 +117,9 @@ func runLoop(ctx context.Context, client *apiClient, name string, heartbeatInter
 
 		go func() {
 			defer execLock.Unlock()
+
 			pollOnce(ctx, client, rt, workerID)
+			rt.reportStatuses(ctx, client)
 		}()
 	}
 

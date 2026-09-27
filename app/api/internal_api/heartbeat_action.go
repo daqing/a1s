@@ -7,8 +7,8 @@ import (
 	"github.com/daqing/a1s/app/api/respond"
 	"github.com/daqing/a1s/app/models"
 	"github.com/daqing/airway/lib/repo"
-	"github.com/daqing/airway/lib/validation"
 	buildingsql "github.com/daqing/airway/lib/sql"
+	"github.com/daqing/airway/lib/validation"
 	"github.com/gin-gonic/gin"
 )
 

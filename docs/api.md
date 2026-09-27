@@ -172,6 +172,22 @@ Responses: `200` with
 `{ "commands": [ { "id": 7, "action": "start", "container_id": 5, "payload": {} } ] }`
 (an empty array when nothing is queued); `404` for a malformed worker id.
 
+### `PUT /api/v1/internal/containers/:id/status`
+
+Applies an observed status report to the container row under the version
+lock. Allowed reports: `running`, `stopped`, `failed`; they only apply from
+`scheduled` or `running` rows, so the reporter can never override a
+desired-state transition (a row the API set to `stopped` stays stopped).
+Same-status reports are idempotent no-ops.
+
+Request: `{ "status": "running" }`
+
+Responses: `200` with
+`{ "id": 5, "status": "running", "applied": true }` (`applied: false`
+carries a `reason` when the report legally does not apply); `400`
+`validation_error` for an unmapped status; `404` unknown container; `409`
+on a lost version race (the next report round retries).
+
 ### `POST /api/v1/internal/commands/:id/result`
 
 Marks the command done and stores the reported result verbatim:

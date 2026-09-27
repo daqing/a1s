@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -296,12 +298,18 @@ func okDetail(detail map[string]any) commandResult {
 }
 
 type startPayload struct {
+	// ID is the a1s containers.id; the worker labels the containerd
+	// container with it so the status report loop can address the row
+	ID      int64             `json:"id"`
 	Image   string            `json:"image"`
 	Name    string            `json:"name"`
 	Command string            `json:"command"`
 	Args    []string          `json:"args"`
 	Env     map[string]string `json:"env"`
 }
+
+// containerIDLabel ties a containerd container back to its a1s row.
+const containerIDLabel = "a1s.container.id"
 
 // start pulls the image (when missing), creates the container and starts
 // its task. Pulls can take minutes, so the context allows ten minutes
@@ -354,10 +362,19 @@ func (rt *containerRuntime) start(ctx context.Context, cmd command) commandResul
 	}
 
 	newContainer := func() (client.Container, error) {
-		return cd.NewContainer(ctx, payload.Name,
+		opts := []client.NewContainerOpts{
 			client.WithSnapshotter(rt.snapshotter),
 			client.WithNewSnapshot(payload.Name, image),
-			withSpecForPlatform(specPlatform, specOpts...))
+			withSpecForPlatform(specPlatform, specOpts...),
+		}
+
+		if payload.ID != 0 {
+			opts = append(opts, client.WithContainerLabels(map[string]string{
+				containerIDLabel: strconv.FormatInt(payload.ID, 10),
+			}))
+		}
+
+		return cd.NewContainer(ctx, payload.Name, opts...)
 	}
 
 	container, err := newContainer()
@@ -443,4 +460,72 @@ func envOr(key, fallback string) string {
 	}
 
 	return fallback
+}
+
+// reportStatuses computes the mapped status of every labeled container and
+// reports it to the API, so the database reflects reality even without
+// commands. Failures are logged and survived.
+func (rt *containerRuntime) reportStatuses(ctx context.Context, client *apiClient) {
+	cd, err := rt.cdClient(ctx)
+	if err != nil {
+		log.Printf("report statuses: containerd unavailable: %v", err)
+		return
+	}
+
+	containers, err := cd.Containers(ctx)
+	if err != nil {
+		log.Printf("report statuses: list containers failed: %v", err)
+		return
+	}
+
+	for _, container := range containers {
+		labels, err := container.Labels(ctx)
+		if err != nil {
+			log.Printf("report statuses: labels for %s failed: %v", container.ID(), err)
+			continue
+		}
+
+		rawID, ok := labels[containerIDLabel]
+		if !ok {
+			continue // not an a1s-managed container
+		}
+
+		containerID, err := strconv.ParseInt(rawID, 10, 64)
+		if err != nil || containerID <= 0 {
+			continue
+		}
+
+		status, err := containerStatus(ctx, container)
+		if err != nil {
+			log.Printf("report statuses: status for %s failed: %v", container.ID(), err)
+			continue
+		}
+
+		if err := client.reportStatus(ctx, containerID, status); err != nil {
+			log.Printf("report statuses: report for container %d failed: %v", containerID, err)
+			continue
+		}
+
+		log.Printf("reported container %d (%s) as %s", containerID, container.ID(), status)
+	}
+}
+
+// containerStatus derives the mapped A1s status of one containerd container
+// (same mapping as inspect).
+func containerStatus(ctx context.Context, container client.Container) (string, error) {
+	task, err := container.Task(ctx, nil)
+	if err != nil {
+		if errdefs.IsNotFound(err) {
+			return models.ContainerStopped, nil
+		}
+
+		return "", err
+	}
+
+	status, err := task.Status(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	return mapTaskStatus(strings.ToUpper(string(status.Status)), status.ExitStatus), nil
 }
