@@ -30,7 +30,7 @@ box until that line is true.
 | 2     | API process + CLI client          | T2.1–T2.9 | 9/9 ✓  |
 | 3     | Worker agent + heartbeats         | T3.1–T3.8 | 8/8 ✓  |
 | 4     | Scheduler                         | T4.1–T4.5 | 5/5 ✓  |
-| 5     | Health monitor                    | T5.1–T5.6 | 4/6    |
+| 5     | Health monitor                    | T5.1–T5.6 | 5/6    |
 | 6     | Hardening and polish              | T6.1–T6.7 | open   |
 
 ---
@@ -331,7 +331,7 @@ box until that line is true.
   *Done when:* `kill`-ing a container process externally results in an
   automatic restart within the detection window, per policy.
 
-- [ ] **T5.5 — Cross-instance dedup review**
+- [x] **T5.5 — Cross-instance dedup review**
   Audit every monitor transition for the optimistic-lock pattern; add a
   regression test that runs the recovery logic twice concurrently and
   asserts single effects.

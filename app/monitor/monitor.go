@@ -71,13 +71,9 @@ func Main(args []string) int {
 	return 0
 }
 
-// runLoop marks stale workers lost, migrates their containers and requeues
-// failed containers per their restart policy, on every tick until ctx is
-// canceled.
+// runLoop recovers the system on every tick until ctx is canceled.
 func runLoop(ctx context.Context, timeout, interval time.Duration) {
-	markLostWorkers(timeout)
-	migrateOffLostWorkers()
-	restartFailedContainers()
+	recoverAll(timeout)
 
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
@@ -87,11 +83,20 @@ func runLoop(ctx context.Context, timeout, interval time.Duration) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			markLostWorkers(timeout)
-			migrateOffLostWorkers()
-			restartFailedContainers()
+			recoverAll(timeout)
 		}
 	}
+}
+
+// recoverAll is one full monitor pass: mark stale workers lost, migrate
+// their runtime containers back to pending, and requeue failed containers
+// per policy. Every transition is version-guarded with conflicts skipped,
+// so two monitor instances running the same pass produce single effects —
+// asserted by TestRecoverAllConcurrentSingleEffects.
+func recoverAll(timeout time.Duration) {
+	markLostWorkers(timeout)
+	migrateOffLostWorkers()
+	restartFailedContainers()
 }
 
 // workerProbe is the slim projection the stale-worker query scans.
