@@ -27,7 +27,7 @@ box until that line is true.
 | ----- | --------------------------------- | -------- | ------ |
 | 0     | Skeleton cleanup and commands     | T0.1–T0.5 | 5/5 ✓  |
 | 1     | Data model and optimistic locking | T1.1–T1.7 | 7/7 ✓  |
-| 2     | API process + CLI client          | T2.1–T2.9 | open   |
+| 2     | API process + CLI client          | T2.1–T2.9 | 9/9 ✓  |
 | 3     | Worker agent + heartbeats         | T3.1–T3.8 | open   |
 | 4     | Scheduler                         | T4.1–T4.5 | open   |
 | 5     | Health monitor                    | T5.1–T5.6 | open   |
@@ -142,7 +142,7 @@ box until that line is true.
 
 ## Phase 2 — API process + CLI client
 
-- [ ] **T2.1 — API contract doc**
+- [x] **T2.1 — API contract doc**
   Write `docs/api.md` defining request/response JSON for
   `POST /api/v1/containers`, `GET /api/v1/containers`,
   `GET /api/v1/containers/:id`, `POST /api/v1/containers/:id/stop`,
@@ -151,7 +151,7 @@ box until that line is true.
   *Done when:* the doc fits on one screen per endpoint group and every later
   handler task can be written mechanically from it.
 
-- [ ] **T2.2 — `POST /api/v1/containers` (run)**
+- [x] **T2.2 — `POST /api/v1/containers` (run)**
   Handler in `app/api` (new `containers_api` package) that validates name and
   image (Airway `lib/validation`), defaults the restart policy, and inserts a
   row with status `pending` and `worker_id NULL`. The API never talks to
@@ -159,12 +159,12 @@ box until that line is true.
   *Done when:* `curl` create returns 201 with the row JSON; invalid input
   returns the error envelope with 4xx; the row is visible in PostgreSQL.
 
-- [ ] **T2.3 — List and inspect endpoints**
+- [x] **T2.3 — List and inspect endpoints**
   `GET /api/v1/containers` (list with status, newest first) and
   `GET /api/v1/containers/:id` (single, 404 via the error envelope).
   *Done when:* rows created in T2.2 round-trip through both endpoints.
 
-- [ ] **T2.4 — Stop and remove endpoints**
+- [x] **T2.4 — Stop and remove endpoints**
   `POST /api/v1/containers/:id/stop` and `DELETE /api/v1/containers/:id` as
   desired-state transitions: stop moves `running`→`stopped` (recorded, the
   worker acts later), remove deletes the row (or tombstones it — follow the
@@ -172,18 +172,18 @@ box until that line is true.
   *Done when:* transitions are persisted with version increments; illegal
   transitions (e.g. stopping a `pending` container) return 409.
 
-- [ ] **T2.5 — `GET /api/v1/workers`**
+- [x] **T2.5 — `GET /api/v1/workers`**
   List workers with status and `last_heartbeat_at`.
   *Done when:* endpoint returns the (still empty or hand-seeded) workers
   table in the documented shape.
 
-- [ ] **T2.6 — Handler tests**
+- [x] **T2.6 — Handler tests**
   `httptest`-based tests for every endpoint above: happy path, validation
   errors, 404s, and conflict (409) cases, backed by the same test-DSN setup
   as T1.6.
   *Done when:* `go test ./...` covers all Phase 2 handlers and passes.
 
-- [ ] **T2.7 — CLI client core: `run` and `ps`**
+- [x] **T2.7 — CLI client core: `run` and `ps`**
   Implement `a1s run <image> [--name] [--cmd] [--env]` and `a1s ps` as thin
   HTTP clients against `A1S_API_URL` (small shared client helper in a new
   `app/cli` package), printing plain readable tables. Map connection failures
@@ -191,11 +191,11 @@ box until that line is true.
   *Done when:* against a running `a1s api`, `a1s run nginx` then `a1s ps`
   shows the pending row; no API running → friendly error, exit code ≠ 0.
 
-- [ ] **T2.8 — CLI: `stop`, `rm`, `workers` + exit codes**
+- [x] **T2.8 — CLI: `stop`, `rm`, `workers` + exit codes**
   Same client helper; exit code 0 on success, 1 on API error, 2 on usage.
   *Done when:* full CRUD cycle works from the CLI alone.
 
-- [ ] **T2.9 — Phase 2 check**
+- [x] **T2.9 — Phase 2 check**
   *Done when:* with only `a1s api` running: `a1s run` creates a `pending`
   row in PostgreSQL, `a1s ps` shows it, stop/remove transitions persist, and
   `a1s workers` answers. No worker exists yet — that is expected here.
