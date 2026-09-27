@@ -116,7 +116,11 @@ func markLostWorkers(timeout time.Duration) {
 		From("workers").
 		Where(buildingsql.AllOf(
 			buildingsql.Eq("status", models.WorkerActive),
-			buildingsql.Lt("last_heartbeat_at", cutoff),
+			// a worker that never heartbeated (NULL) counts as stale too
+			buildingsql.AnyOf(
+				buildingsql.IsNull("last_heartbeat_at"),
+				buildingsql.Lt("last_heartbeat_at", cutoff),
+			),
 		))
 
 	rows, err := repo.Find[workerProbe](repo.CurrentDB(), b)

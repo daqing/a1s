@@ -30,7 +30,7 @@ box until that line is true.
 | 2     | API process + CLI client          | T2.1–T2.9 | 9/9 ✓  |
 | 3     | Worker agent + heartbeats         | T3.1–T3.8 | 8/8 ✓  |
 | 4     | Scheduler                         | T4.1–T4.5 | 5/5 ✓  |
-| 5     | Health monitor                    | T5.1–T5.6 | 5/6    |
+| 5     | Health monitor                    | T5.1–T5.6 | 6/6 ✓  |
 | 6     | Hardening and polish              | T6.1–T6.7 | open   |
 
 ---
@@ -338,7 +338,7 @@ box until that line is true.
   *Done when:* two monitor instances running simultaneously through a
   worker-loss event produce no double-migrations or double-restarts.
 
-- [ ] **T5.6 — Phase 5 check (the core demo)**
+- [x] **T5.6 — Phase 5 check (the core demo)**
   Document the failure-detection timeline (heartbeat interval × timeout ×
   poll interval) in `docs/state-model.md`, then run the demo.
   *Done when:* two workers; several containers running; `kill -9` one worker
