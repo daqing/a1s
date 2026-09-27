@@ -12,6 +12,7 @@ import (
 	_ "github.com/daqing/a1s/app/models"
 
 	"github.com/daqing/a1s/app/cli"
+	"github.com/daqing/a1s/app/monitor"
 	"github.com/daqing/a1s/app/scheduler"
 	"github.com/daqing/a1s/app/worker"
 	"github.com/daqing/airway/cmd"
@@ -62,7 +63,8 @@ func main() {
 		loadCLIEnv()
 		os.Exit(scheduler.Main(args[1:]))
 	case "monitor":
-		notImplemented(args[0])
+		loadCLIEnv()
+		os.Exit(monitor.Main(args[1:]))
 	default:
 		cmd.Version = versionString()
 		loadCLIEnv()
@@ -104,7 +106,7 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "process commands:")
 	fmt.Fprintln(w, "  api        start the HTTP control plane API (alias: server)")
 	fmt.Fprintln(w, "  scheduler  start the scheduling loop")
-	fmt.Fprintln(w, "  monitor    start the health monitor (not implemented yet)")
+	fmt.Fprintln(w, "  monitor    start the health monitor")
 	fmt.Fprintln(w, "  worker     start the worker agent on this node")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "client commands (talk to the API at A1S_API_URL):")
