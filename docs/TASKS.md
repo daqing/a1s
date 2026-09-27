@@ -29,7 +29,7 @@ box until that line is true.
 | 1     | Data model and optimistic locking | T1.1–T1.7 | 7/7 ✓  |
 | 2     | API process + CLI client          | T2.1–T2.9 | 9/9 ✓  |
 | 3     | Worker agent + heartbeats         | T3.1–T3.8 | 8/8 ✓  |
-| 4     | Scheduler                         | T4.1–T4.5 | 4/5    |
+| 4     | Scheduler                         | T4.1–T4.5 | 5/5 ✓  |
 | 5     | Health monitor                    | T5.1–T5.6 | open   |
 | 6     | Hardening and polish              | T6.1–T6.7 | open   |
 
@@ -294,7 +294,7 @@ box until that line is true.
   ends with a container visible as `running` in both `a1s ps` and
   `ctr`/`crictl`.
 
-- [ ] **T4.5 — Phase 4 check (scheduler chaos)**
+- [x] **T4.5 — Phase 4 check (scheduler chaos)**
   *Done when:* the full flow above works, and killing + restarting the
   scheduler mid-test produces no duplicate assignments and no stuck
   containers.
