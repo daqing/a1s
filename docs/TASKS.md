@@ -30,7 +30,7 @@ box until that line is true.
 | 2     | API process + CLI client          | T2.1–T2.9 | 9/9 ✓  |
 | 3     | Worker agent + heartbeats         | T3.1–T3.8 | 8/8 ✓  |
 | 4     | Scheduler                         | T4.1–T4.5 | 5/5 ✓  |
-| 5     | Health monitor                    | T5.1–T5.6 | 2/6    |
+| 5     | Health monitor                    | T5.1–T5.6 | 3/6    |
 | 6     | Hardening and polish              | T6.1–T6.7 | open   |
 
 ---
@@ -316,7 +316,7 @@ box until that line is true.
   *Done when:* stopping a worker's heartbeat (kill the process) flips its row
   to `lost` within the detection window, verified in the DB.
 
-- [ ] **T5.3 — Auto-migration**
+- [x] **T5.3 — Auto-migration**
   For each container on a lost worker, reset to `pending` with
   `worker_id NULL` (version-guarded) so the scheduler reschedules onto
   survivors. Define and record takeover semantics in `docs/state-model.md`:

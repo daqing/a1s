@@ -69,9 +69,11 @@ func Main(args []string) int {
 	return 0
 }
 
-// runLoop marks stale workers lost on every tick until ctx is canceled.
+// runLoop marks stale workers lost, then migrates their containers, on
+// every tick until ctx is canceled.
 func runLoop(ctx context.Context, timeout, interval time.Duration) {
 	markLostWorkers(timeout)
+	migrateOffLostWorkers()
 
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
@@ -82,6 +84,7 @@ func runLoop(ctx context.Context, timeout, interval time.Duration) {
 			return
 		case <-ticker.C:
 			markLostWorkers(timeout)
+			migrateOffLostWorkers()
 		}
 	}
 }
@@ -142,4 +145,73 @@ func parseDuration(raw string, fallback time.Duration) (time.Duration, bool) {
 	}
 
 	return parsed, true
+}
+
+// migrateProbe is the slim projection the orphaned-container query scans.
+type migrateProbe struct {
+	ID      int64 `db:"id"`
+	Version int64 `db:"version"`
+}
+
+// migrateOffLostWorkers resets the scheduled and running containers of lost
+// workers back to pending with no worker, so the scheduler reschedules them
+// onto survivors. Desired states are left alone: a stopped or failed
+// container on a lost worker must not be restarted by the takeover. Each
+// reset is version-guarded, so concurrent monitors never double-migrate.
+func migrateOffLostWorkers() {
+	lost, err := repo.Find[workerProbe](repo.CurrentDB(),
+		buildingsql.SelectColumns("id", "version").
+			From("workers").
+			Where(buildingsql.Eq("status", models.WorkerLost)))
+	if err != nil {
+		log.Printf("migrate: query lost workers failed: %v", err)
+		return
+	}
+
+	if len(lost) == 0 {
+		return
+	}
+
+	lostIDs := make([]int64, 0, len(lost))
+	for _, w := range lost {
+		lostIDs = append(lostIDs, w.ID)
+	}
+
+	orphaned, err := repo.Find[migrateProbe](repo.CurrentDB(),
+		buildingsql.SelectColumns("id", "version").
+			From("containers").
+			Where(buildingsql.AllOf(
+				buildingsql.In("worker_id", lostIDs),
+				buildingsql.In("status", []string{models.ContainerScheduled, models.ContainerRunning}),
+			)))
+	if err != nil {
+		log.Printf("migrate: query containers failed: %v", err)
+		return
+	}
+
+	for _, probe := range orphaned {
+		var t models.Container
+
+		affected, err := repo.UpdateAffected(repo.CurrentDB(),
+			buildingsql.UpdateTable(buildingsql.TableFor(t)).Set(buildingsql.H{
+				"status":       models.ContainerPending,
+				"worker_id":    nil,
+				"scheduled_at": nil,
+				"version":      buildingsql.Op(buildingsql.Column("version"), "+", 1),
+				"updated_at":   buildingsql.Func("now"),
+			}).Where(buildingsql.AllOf(
+				buildingsql.FieldEq(buildingsql.FieldFor(t, "id"), probe.ID),
+				buildingsql.FieldEq(buildingsql.FieldFor(t, "version"), probe.Version),
+			)))
+		if err != nil {
+			log.Printf("migrate: container %d failed: %v", probe.ID, err)
+			continue
+		}
+
+		if affected == 0 {
+			continue // another monitor instance migrated it first
+		}
+
+		log.Printf("container %d orphaned by a lost worker, reset to pending", probe.ID)
+	}
 }

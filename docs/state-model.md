@@ -74,7 +74,7 @@ Transitions (actor in parentheses):
 | `scheduled` → `failed`    | worker report (Phase 4)        | Start command failed.                                                  |
 | `running` → `stopped`     | API desired state (Phase 2) + worker confirmation | `stop` records the desired state; the worker acts and reports. |
 | `running` → `failed`      | worker report (Phase 3/6)      | Unexpected non-zero exit.                                              |
-| `scheduled`/`running` → `pending` | monitor (Phase 5)      | Auto-migration: the owning worker was marked `lost`; `worker_id` resets to NULL so the scheduler reschedules. |
+| `scheduled`/`running` → `pending` | monitor (Phase 5)      | Auto-migration: the owning worker was marked `lost`; `worker_id` resets to NULL so the scheduler reschedules. Only runtime-bearing states migrate — a `stopped` or `failed` container on a lost worker keeps its desired state and must not be restarted by the takeover. |
 | `failed` → `pending`      | monitor (Phase 5)              | Auto-restart, only when the `restart_policy` calls for it.             |
 | `*` → `lost`              | reconciliation (Phase 6)       | Runtime unaccountable; reconciliation decides cleanup or requeue.      |
 

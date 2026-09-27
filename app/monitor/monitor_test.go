@@ -70,6 +70,11 @@ func seedMonitorWorker(t *testing.T, name, status string, heartbeatAge time.Dura
 	return id, version
 }
 
+// timeNowUnix is a small helper for unique test fixture names.
+func timeNowUnix() int64 {
+	return time.Now().UnixNano()
+}
+
 // workerRow reads the current status and version of one worker row.
 func workerRow(t *testing.T, id int64) (string, int64) {
 	t.Helper()
