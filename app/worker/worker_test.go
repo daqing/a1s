@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -21,7 +22,7 @@ func TestContainerdConnectivity(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	client, err := Dial(ctx, addr)
+	client, err := Dial(ctx, addr, "a1s")
 	if err != nil {
 		t.Fatalf("connect to containerd at %s: %v", addr, err)
 	}
@@ -34,7 +35,7 @@ func TestContainerdConnectivity(t *testing.T) {
 	t.Logf("namespaces before: %v", before)
 
 	const spike = "a1s-spike"
-	if err := client.NamespaceService().Create(ctx, spike, nil); err != nil {
+	if err := client.NamespaceService().Create(ctx, spike, nil); err != nil && !strings.Contains(err.Error(), "already exists") {
 		t.Fatalf("create namespace %q: %v", spike, err)
 	}
 

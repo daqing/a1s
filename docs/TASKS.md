@@ -28,7 +28,7 @@ box until that line is true.
 | 0     | Skeleton cleanup and commands     | T0.1–T0.5 | 5/5 ✓  |
 | 1     | Data model and optimistic locking | T1.1–T1.7 | 7/7 ✓  |
 | 2     | API process + CLI client          | T2.1–T2.9 | 9/9 ✓  |
-| 3     | Worker agent + heartbeats         | T3.1–T3.8 | 4/8    |
+| 3     | Worker agent + heartbeats         | T3.1–T3.8 | 5/8    |
 | 4     | Scheduler                         | T4.1–T4.5 | open   |
 | 5     | Health monitor                    | T5.1–T5.6 | open   |
 | 6     | Hardening and polish              | T6.1–T6.7 | open   |
@@ -236,7 +236,7 @@ box until that line is true.
   *Done when:* a hand-inserted command row is fetched by the worker and its
   reported result lands in the DB.
 
-- [ ] **T3.5 — containerd lifecycle: pull, create, start**
+- [x] **T3.5 — containerd lifecycle: pull, create, start**
   Worker-side executor for `start`: pull image (if missing), create the
   container, start it, using the client style chosen in T3.1.
   *Done when:* a hand-queued `start` command results in a running container

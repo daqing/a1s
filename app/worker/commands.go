@@ -109,21 +109,9 @@ func apiErrorFromBody(status int, payload []byte) error {
 	return fmt.Errorf("api %d", status)
 }
 
-// executeCommand dispatches one command to its action executor. The
-// containerd executors land in T3.5/T3.6; until then every action reports
-// not-implemented.
-func executeCommand(cmd command) commandResult {
-	switch cmd.Action {
-	case "start", "stop", "remove", "inspect":
-		return commandResult{OK: false, Error: "action not implemented yet"}
-	default:
-		return commandResult{OK: false, Error: fmt.Sprintf("unknown action %q", cmd.Action)}
-	}
-}
-
 // pollOnce fetches and executes the worker's queued commands, reporting
 // each result. Failures are logged and survived; the next poll retries.
-func pollOnce(ctx context.Context, client *apiClient, workerID int64) {
+func pollOnce(ctx context.Context, client *apiClient, rt *containerRuntime, workerID int64) {
 	cmds, err := client.fetchCommands(ctx, workerID)
 	if err != nil {
 		log.Printf("poll commands failed: %v", err)
@@ -131,7 +119,7 @@ func pollOnce(ctx context.Context, client *apiClient, workerID int64) {
 	}
 
 	for _, cmd := range cmds {
-		result := executeCommand(cmd)
+		result := rt.execute(ctx, cmd)
 		if err := client.reportResult(ctx, cmd.ID, result); err != nil {
 			log.Printf("report result for command %d failed: %v", cmd.ID, err)
 			continue

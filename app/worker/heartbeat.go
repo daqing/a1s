@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -83,7 +84,10 @@ func Main(args []string) int {
 // heartbeat interval and polling for commands on the poll interval until
 // ctx is canceled. Transient API failures are logged and survived.
 func runLoop(ctx context.Context, client *apiClient, name string, heartbeatInterval, pollInterval time.Duration) {
+	rt := newContainerRuntime()
+
 	var workerID int64
+	var execLock sync.Mutex
 
 	beat := func() {
 		id, status, err := client.heartbeat(ctx, name)
@@ -105,7 +109,16 @@ func runLoop(ctx context.Context, client *apiClient, name string, heartbeatInter
 			return // not registered yet
 		}
 
-		pollOnce(ctx, client, workerID)
+		// one command at a time; while a command executes (a pull can take
+		// minutes) further polls are skipped and heartbeats keep flowing
+		if !execLock.TryLock() {
+			return
+		}
+
+		go func() {
+			defer execLock.Unlock()
+			pollOnce(ctx, client, rt, workerID)
+		}()
 	}
 
 	poll() // in case commands are already queued from a previous run
