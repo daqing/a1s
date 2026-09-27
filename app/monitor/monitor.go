@@ -5,6 +5,7 @@ package monitor
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -68,9 +69,9 @@ func Main(args []string) int {
 	return 0
 }
 
-// runLoop checks heartbeat freshness on every tick until ctx is canceled.
+// runLoop marks stale workers lost on every tick until ctx is canceled.
 func runLoop(ctx context.Context, timeout, interval time.Duration) {
-	check(timeout)
+	markLostWorkers(timeout)
 
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
@@ -80,31 +81,51 @@ func runLoop(ctx context.Context, timeout, interval time.Duration) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			check(timeout)
+			markLostWorkers(timeout)
 		}
 	}
 }
 
-// check counts active workers whose heartbeat is older than the timeout.
-// Marking them lost lands in T5.2 — the loop only observes for now.
-func check(timeout time.Duration) {
+// workerProbe is the slim projection the stale-worker query scans.
+type workerProbe struct {
+	ID      int64 `db:"id"`
+	Version int64 `db:"version"`
+}
+
+// markLostWorkers flips active workers whose heartbeat is older than the
+// timeout to lost. Each transition goes through the version lock, so two
+// monitor instances never double-mark: a conflict means the other instance
+// already won and is skipped.
+func markLostWorkers(timeout time.Duration) {
 	cutoff := time.Now().Add(-timeout)
 
-	b := buildingsql.SelectColumns("count(*)").
+	b := buildingsql.SelectColumns("id", "version").
 		From("workers").
 		Where(buildingsql.AllOf(
 			buildingsql.Eq("status", models.WorkerActive),
 			buildingsql.Lt("last_heartbeat_at", cutoff),
 		))
 
-	stale, err := repo.Count(repo.CurrentDB(), b)
+	rows, err := repo.Find[workerProbe](repo.CurrentDB(), b)
 	if err != nil {
-		log.Printf("check failed: %v", err)
+		log.Printf("mark lost workers: query failed: %v", err)
 		return
 	}
 
-	if stale > 0 {
-		log.Printf("%d active worker(s) past the heartbeat timeout (marking not implemented yet)", stale)
+	for _, probe := range rows {
+		_, err := models.UpdateWhereVersion[models.Worker](probe.ID, probe.Version, buildingsql.H{
+			"status": models.WorkerLost,
+		})
+		if err != nil {
+			if errors.Is(err, models.ErrVersionConflict) {
+				continue // the other monitor instance marked it first
+			}
+
+			log.Printf("mark lost workers: worker %d failed: %v", probe.ID, err)
+			continue
+		}
+
+		log.Printf("worker %d marked lost (heartbeat older than %s)", probe.ID, timeout)
 	}
 }
 

@@ -30,7 +30,7 @@ box until that line is true.
 | 2     | API process + CLI client          | T2.1–T2.9 | 9/9 ✓  |
 | 3     | Worker agent + heartbeats         | T3.1–T3.8 | 8/8 ✓  |
 | 4     | Scheduler                         | T4.1–T4.5 | 5/5 ✓  |
-| 5     | Health monitor                    | T5.1–T5.6 | 1/6    |
+| 5     | Health monitor                    | T5.1–T5.6 | 2/6    |
 | 6     | Hardening and polish              | T6.1–T6.7 | open   |
 
 ---
@@ -309,7 +309,7 @@ box until that line is true.
   *Done when:* the process runs, logs its configured timings, and is
   documented in `.env.example`.
 
-- [ ] **T5.2 — Mark lost workers**
+- [x] **T5.2 — Mark lost workers**
   Workers whose `last_heartbeat_at` is older than the timeout transition
   `active`→`lost` through `UpdateWhereVersion` so two monitor instances never
   double-mark.
