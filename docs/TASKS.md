@@ -27,7 +27,7 @@ box until that line is true.
 | ----- | --------------------------------- | -------- | ------ |
 | 0     | Skeleton cleanup and commands     | T0.1–T0.5 | 5/5 ✓  |
 | 1     | Data model and optimistic locking | T1.1–T1.7 | 7/7 ✓  |
-| 2     | API process + CLI client          | T2.1–T2.9 | 5/9    |
+| 2     | API process + CLI client          | T2.1–T2.9 | 6/9    |
 | 3     | Worker agent + heartbeats         | T3.1–T3.8 | open   |
 | 4     | Scheduler                         | T4.1–T4.5 | open   |
 | 5     | Health monitor                    | T5.1–T5.6 | open   |
@@ -177,7 +177,7 @@ box until that line is true.
   *Done when:* endpoint returns the (still empty or hand-seeded) workers
   table in the documented shape.
 
-- [ ] **T2.6 — Handler tests**
+- [x] **T2.6 — Handler tests**
   `httptest`-based tests for every endpoint above: happy path, validation
   errors, 404s, and conflict (409) cases, backed by the same test-DSN setup
   as T1.6.
