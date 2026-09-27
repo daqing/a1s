@@ -41,6 +41,10 @@ func TestRoutesServesHealthOnly(t *testing.T) {
 		t.Fatalf("expected DELETE /api/v1/containers/:id to be registered, got %#v", registered)
 	}
 
+	if !registered["GET /api/v1/workers"] {
+		t.Fatalf("expected GET /api/v1/workers to be registered, got %#v", registered)
+	}
+
 	dropped := []string{
 		"GET /",
 		"GET /openapi.json",
