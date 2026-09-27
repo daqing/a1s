@@ -29,7 +29,7 @@ box until that line is true.
 | 1     | Data model and optimistic locking | T1.1–T1.7 | 7/7 ✓  |
 | 2     | API process + CLI client          | T2.1–T2.9 | 9/9 ✓  |
 | 3     | Worker agent + heartbeats         | T3.1–T3.8 | 8/8 ✓  |
-| 4     | Scheduler                         | T4.1–T4.5 | 3/5    |
+| 4     | Scheduler                         | T4.1–T4.5 | 4/5    |
 | 5     | Health monitor                    | T5.1–T5.6 | open   |
 | 6     | Hardening and polish              | T6.1–T6.7 | open   |
 
@@ -287,7 +287,7 @@ box until that line is true.
   *Done when:* running two scheduler instances against the same pending row
   results in exactly one assignment and one queued command.
 
-- [ ] **T4.4 — End-to-end start flow**
+- [x] **T4.4 — End-to-end start flow**
   The worker picks up the `start` command (channel from T3.4), runs it
   (T3.5), reports `running`; on start failure reports `failed`.
   *Done when:* `a1s run nginx` with api + scheduler + worker all running

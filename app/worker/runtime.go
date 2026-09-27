@@ -20,6 +20,7 @@ import (
 	"github.com/containerd/errdefs"
 	"github.com/containerd/platforms"
 	"github.com/containerd/typeurl/v2"
+	"github.com/distribution/reference"
 
 	"github.com/daqing/a1s/app/models"
 )
@@ -405,7 +406,16 @@ func (rt *containerRuntime) start(ctx context.Context, cmd command) commandResul
 // and metadata only), so the Get path unpacks on demand — idempotent for
 // already-unpacked images.
 func (rt *containerRuntime) ensureImage(ctx context.Context, cd *client.Client, ref string) (client.Image, error) {
-	if image, err := cd.GetImage(ctx, ref); err == nil {
+	// containerd stores and resolves images under fully-qualified names;
+	// short names like "nginx" are normalized docker-style
+	named, err := reference.ParseDockerRef(ref)
+	if err != nil {
+		return nil, fmt.Errorf("invalid image reference %q: %w", ref, err)
+	}
+
+	canonical := named.String()
+
+	if image, err := cd.GetImage(ctx, canonical); err == nil {
 		if err := image.Unpack(ctx, rt.snapshotter); err != nil {
 			return nil, err
 		}
@@ -413,7 +423,7 @@ func (rt *containerRuntime) ensureImage(ctx context.Context, cd *client.Client, 
 		return image, nil
 	}
 
-	return rt.pullImage(ctx, cd, ref)
+	return rt.pullImage(ctx, cd, canonical)
 }
 
 // pullImage fetches the image and unpacks it into the runtime's snapshotter.

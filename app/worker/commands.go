@@ -8,6 +8,8 @@ import (
 	"log"
 	"net/http"
 	"strings"
+
+	"github.com/daqing/a1s/app/models"
 )
 
 // command is one queued work item as delivered by the API.
@@ -160,5 +162,14 @@ func pollOnce(ctx context.Context, client *apiClient, rt *containerRuntime, work
 		}
 
 		log.Printf("command %d (%s) reported done", cmd.ID, cmd.Action)
+
+		// a failed start leaves no containerd container behind, so the
+		// status report loop would never see it; report the failure
+		// directly so the row does not stay scheduled forever
+		if cmd.Action == "start" && !result.OK && cmd.ContainerID != nil {
+			if err := client.reportStatus(ctx, *cmd.ContainerID, models.ContainerFailed); err != nil {
+				log.Printf("report failed status for container %d: %v", *cmd.ContainerID, err)
+			}
+		}
 	}
 }
