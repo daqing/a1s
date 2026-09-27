@@ -97,8 +97,8 @@ func TestFetchCommandsDeliversQueuedInFIFO(t *testing.T) {
 
 	var got struct {
 		Commands []struct {
-			ID     int64           `json:"id"`
-			Action string          `json:"action"`
+			ID      int64           `json:"id"`
+			Action  string          `json:"action"`
 			Payload json.RawMessage `json:"payload"`
 		} `json:"commands"`
 	}

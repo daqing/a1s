@@ -31,10 +31,10 @@ func TestStartExecutorRunsTask(t *testing.T) {
 	}
 
 	payload, err := json.Marshal(map[string]any{
-		"name":  "t35-start",
-		"image": "docker.io/library/busybox:latest",
+		"name":    "t35-start",
+		"image":   "docker.io/library/busybox:latest",
 		"command": "sleep",
-		"args":  []string{"300"},
+		"args":    []string{"300"},
 	})
 	if err != nil {
 		t.Fatalf("marshal payload: %v", err)

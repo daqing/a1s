@@ -14,10 +14,10 @@ import (
 )
 
 type commandJSON struct {
-	ID          int64          `json:"id"`
-	Action      string         `json:"action"`
-	ContainerID *int64         `json:"container_id"`
-	Payload     models.JSONB   `json:"payload"`
+	ID          int64        `json:"id"`
+	Action      string       `json:"action"`
+	ContainerID *int64       `json:"container_id"`
+	Payload     models.JSONB `json:"payload"`
 }
 
 func toCommandJSON(c *models.Command) commandJSON {

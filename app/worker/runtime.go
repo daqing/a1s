@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -17,6 +18,8 @@ import (
 	"github.com/containerd/errdefs"
 	"github.com/containerd/platforms"
 	"github.com/containerd/typeurl/v2"
+
+	"github.com/daqing/a1s/app/models"
 )
 
 // withSpecForPlatform generates the OCI spec for an explicit platform,
@@ -80,15 +83,216 @@ func (rt *containerRuntime) cdClient(ctx context.Context) (*client.Client, error
 	return cd, nil
 }
 
-// execute dispatches one command to its action executor. The stop, remove
-// and inspect executors land in T3.6; start is live.
+// execute dispatches one command to its action executor.
 func (rt *containerRuntime) execute(ctx context.Context, cmd command) commandResult {
 	switch cmd.Action {
 	case "start":
 		return rt.start(ctx, cmd)
+	case "stop":
+		return rt.stop(ctx, cmd)
+	case "remove":
+		return rt.remove(ctx, cmd)
+	case "inspect":
+		return rt.inspect(ctx, cmd)
 	default:
-		return commandResult{OK: false, Error: "action not implemented yet"}
+		return commandResult{OK: false, Error: fmt.Sprintf("unknown action %q", cmd.Action)}
 	}
+}
+
+type namePayload struct {
+	Name string `json:"name"`
+}
+
+func decodeNamePayload(cmd command) (string, error) {
+	var payload namePayload
+	if err := json.Unmarshal(cmd.Payload, &payload); err != nil {
+		return "", fmt.Errorf("decode payload: %v", err)
+	}
+
+	if payload.Name == "" {
+		return "", fmt.Errorf("payload needs a name")
+	}
+
+	return payload.Name, nil
+}
+
+// stop kills the container's task (SIGTERM, then SIGKILL after a grace
+// period) and deletes the task record; the container object survives in
+// stopped state. Stopping something already stopped or gone succeeds.
+func (rt *containerRuntime) stop(ctx context.Context, cmd command) commandResult {
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
+	defer cancel()
+
+	name, err := decodeNamePayload(cmd)
+	if err != nil {
+		return commandResult{OK: false, Error: err.Error()}
+	}
+
+	cd, err := rt.cdClient(ctx)
+	if err != nil {
+		return commandResult{OK: false, Error: fmt.Sprintf("containerd unavailable: %v", err)}
+	}
+
+	container, err := cd.LoadContainer(ctx, name)
+	if err != nil {
+		if errdefs.IsNotFound(err) {
+			return okState("stopped")
+		}
+
+		return commandResult{OK: false, Error: fmt.Sprintf("load container: %v", err)}
+	}
+
+	task, err := container.Task(ctx, nil)
+	if err != nil {
+		if errdefs.IsNotFound(err) {
+			return okState("stopped")
+		}
+
+		return commandResult{OK: false, Error: fmt.Sprintf("load task: %v", err)}
+	}
+
+	if err := rt.killTask(ctx, task); err != nil {
+		return commandResult{OK: false, Error: fmt.Sprintf("stop task: %v", err)}
+	}
+
+	return okState("stopped")
+}
+
+// killTask terminates a task gracefully and reaps it.
+func (rt *containerRuntime) killTask(ctx context.Context, task client.Task) error {
+	waitCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+
+	exitCh, _ := task.Wait(waitCtx)
+
+	reap := func() error {
+		_, err := task.Delete(ctx, client.WithProcessKill)
+		return err
+	}
+
+	if err := task.Kill(ctx, syscall.SIGTERM); err != nil {
+		// an exited or never-started task cannot take a signal; force-reap it
+		return reap()
+	}
+
+	select {
+	case <-exitCh:
+		_, err := task.Delete(ctx)
+		return err
+	case <-time.After(5 * time.Second):
+		if err := task.Kill(ctx, syscall.SIGKILL); err != nil {
+			return reap()
+		}
+
+		<-exitCh
+		_, err := task.Delete(ctx)
+		return err
+	case <-waitCtx.Done():
+		return reap()
+	}
+}
+
+// remove kills and deletes the task, then deletes the container object;
+// removing something already gone succeeds.
+func (rt *containerRuntime) remove(ctx context.Context, cmd command) commandResult {
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
+	defer cancel()
+
+	name, err := decodeNamePayload(cmd)
+	if err != nil {
+		return commandResult{OK: false, Error: err.Error()}
+	}
+
+	cd, err := rt.cdClient(ctx)
+	if err != nil {
+		return commandResult{OK: false, Error: fmt.Sprintf("containerd unavailable: %v", err)}
+	}
+
+	if err := rt.removeExisting(ctx, cd, name); err != nil {
+		return commandResult{OK: false, Error: fmt.Sprintf("remove container: %v", err)}
+	}
+
+	return okState("removed")
+}
+
+// inspect reports the container's mapped status plus the raw containerd
+// task state (see docs/state-model.md for the mapping).
+func (rt *containerRuntime) inspect(ctx context.Context, cmd command) commandResult {
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+	defer cancel()
+
+	name, err := decodeNamePayload(cmd)
+	if err != nil {
+		return commandResult{OK: false, Error: err.Error()}
+	}
+
+	cd, err := rt.cdClient(ctx)
+	if err != nil {
+		return commandResult{OK: false, Error: fmt.Sprintf("containerd unavailable: %v", err)}
+	}
+
+	container, err := cd.LoadContainer(ctx, name)
+	if err != nil {
+		if errdefs.IsNotFound(err) {
+			return okDetail(map[string]any{"exists": false})
+		}
+
+		return commandResult{OK: false, Error: fmt.Sprintf("load container: %v", err)}
+	}
+
+	detail := map[string]any{"exists": true}
+
+	task, err := container.Task(ctx, nil)
+	if err != nil {
+		if errdefs.IsNotFound(err) {
+			detail["status"] = models.ContainerStopped
+			detail["containerd"] = "no_task"
+			return okDetail(detail)
+		}
+
+		return commandResult{OK: false, Error: fmt.Sprintf("load task: %v", err)}
+	}
+
+	status, err := task.Status(ctx)
+	if err != nil {
+		return commandResult{OK: false, Error: fmt.Sprintf("task status: %v", err)}
+	}
+
+	detail["status"] = mapTaskStatus(strings.ToUpper(string(status.Status)), status.ExitStatus)
+	detail["containerd"] = status.Status
+	detail["exit_code"] = status.ExitStatus
+
+	return okDetail(detail)
+}
+
+// mapTaskStatus maps a containerd task state onto the container statuses
+// from docs/state-model.md. Task states arrive lowercase via the API
+// ("running"); ctr displays them uppercase, so the match normalizes case.
+func mapTaskStatus(state string, exitCode uint32) string {
+	switch strings.ToUpper(state) {
+	case "RUNNING":
+		return models.ContainerRunning
+	case "STOPPED":
+		if exitCode == 0 {
+			return models.ContainerStopped
+		}
+
+		return models.ContainerFailed
+	default:
+		// CREATED and PAUSED are not-running states A1s does not model
+		// separately
+		return models.ContainerStopped
+	}
+}
+
+func okState(state string) commandResult {
+	detail, _ := json.Marshal(map[string]any{"state": state})
+	return commandResult{OK: true, Detail: detail}
+}
+
+func okDetail(detail map[string]any) commandResult {
+	encoded, _ := json.Marshal(detail)
+	return commandResult{OK: true, Detail: encoded}
 }
 
 type startPayload struct {

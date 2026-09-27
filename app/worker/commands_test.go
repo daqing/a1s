@@ -83,7 +83,9 @@ func TestPollExecutesQueuedCommands(t *testing.T) {
 	if err := json.Unmarshal([]byte(result), &decoded); err != nil {
 		t.Fatalf("decode result %q: %v", result, err)
 	}
-	if decoded.OK || decoded.Error != "action not implemented yet" {
-		t.Fatalf("expected the stub executor result, got %#v", decoded)
+	// the executor rejects the command in this environment (no containerd on
+	// the test host); the channel mechanics under test are fetch + report
+	if decoded.OK {
+		t.Fatalf("expected a rejected result, got %#v", decoded)
 	}
 }

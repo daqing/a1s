@@ -144,9 +144,19 @@ race — retry on the next beat); `401` when the token check fails.
 
 ### Command channel
 
-Vocabulary: `start`, `stop`, `remove`, `inspect` — all about the container
-named in `container_id`; `payload` carries action-specific data. Nothing
-generates commands until the scheduler lands (Phase 4).
+Vocabulary and payloads — every action names its container by name:
+
+| action    | payload                                     |
+| --------- | ------------------------------------------- |
+| `start`   | `{"image": "...", "name": "...", "command": "", "args": [], "env": {}}` (`command`/`args`/`env` optional) |
+| `stop`    | `{"name": "..."}`                            |
+| `remove`  | `{"name": "..."}`                            |
+| `inspect` | `{"name": "..."}`                            |
+
+Results carry `{"ok": true|false, "error": "...", "detail": {...}}`;
+`inspect` detail holds `{"exists": true, "status": "running", "containerd": "RUNNING", "exit_code": 0}`
+with the status mapped per `docs/state-model.md`. Nothing generates
+commands until the scheduler lands (Phase 4).
 
 Delivery is at-least-once by polling: `GET .../commands` marks each handed
 command `delivered` (queued → delivered → done). A worker that dies after

@@ -89,6 +89,23 @@ auto-migration transition — both through `UpdateWhereVersion`.
 monitor (Phase 5) requeues `failed` containers to `pending` only when the
 policy says so.
 
+## containerd state mapping
+
+The worker's `inspect` executor maps the containerd task state onto the
+container statuses above (`app/worker/runtime.go`, `mapTaskStatus`):
+
+| containerd task state | A1s status |
+| --------------------- | ---------- |
+| `RUNNING`             | `running`  |
+| `STOPPED`, exit 0     | `stopped`  |
+| `STOPPED`, exit != 0  | `failed`   |
+| `PAUSED`, `CREATED`   | `stopped`  |
+| no task record        | `stopped`  |
+| container missing     | (reported as `exists: false`; not an A1s status) |
+
+`stop` keeps the container object (its task is killed and reaped); `remove`
+deletes both task and container.
+
 ## Conventions
 
 - IDs are `BIGINT GENERATED ALWAYS AS IDENTITY`; future event/exit tables
