@@ -29,7 +29,7 @@ box until that line is true.
 | 1     | Data model and optimistic locking | T1.1–T1.7 | 7/7 ✓  |
 | 2     | API process + CLI client          | T2.1–T2.9 | 9/9 ✓  |
 | 3     | Worker agent + heartbeats         | T3.1–T3.8 | 8/8 ✓  |
-| 4     | Scheduler                         | T4.1–T4.5 | 1/5    |
+| 4     | Scheduler                         | T4.1–T4.5 | 2/5    |
 | 5     | Health monitor                    | T5.1–T5.6 | open   |
 | 6     | Hardening and polish              | T6.1–T6.7 | open   |
 
@@ -272,7 +272,7 @@ box until that line is true.
   *Done when:* scheduler logs pending containers it observes; `a1s run`
   followed by scheduler startup shows the row being noticed.
 
-- [ ] **T4.2 — Worker selection query**
+- [x] **T4.2 — Worker selection query**
   Pick the `active` worker with the fewest running containers, via
   `lib/sql`. Leave the structure open for later policies (resources, labels,
   spread/packing) but implement only least-loaded now.
