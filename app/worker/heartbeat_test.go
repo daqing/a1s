@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"net/http/httptest"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/daqing/a1s/app/api/apitest"
 	"github.com/daqing/a1s/app/api/internal_api"
+	"github.com/daqing/a1s/internal/testdb"
 	"github.com/daqing/airway/lib/repo"
 	"github.com/gin-gonic/gin"
 )
@@ -18,7 +18,7 @@ import (
 // in-process API backed by the test database: the first beat registers the
 // worker, later beats bump the version.
 func TestHeartbeatLoopRegistersAndAdvances(t *testing.T) {
-	dsn := apitestDsn()
+	dsn := apitestDsn(t)
 	if dsn == "" {
 		t.Skip("A1S_TEST_DSN not set; skipping database-backed test")
 	}
@@ -82,8 +82,8 @@ func TestLoopSurvivesTransientErrors(t *testing.T) {
 	// reaching here means the loop survived the failed beats
 }
 
-// apitestDsn mirrors the A1S_TEST_DSN skip convention shared with the API
-// tests without importing their package (which would drag in gin routes).
-func apitestDsn() string {
-	return os.Getenv("A1S_TEST_DSN")
+// apitestDsn returns the worker package's private test database DSN,
+// skipping the caller's test when A1S_TEST_DSN is unset.
+func apitestDsn(t *testing.T) string {
+	return testdb.DSN(t, "worker")
 }

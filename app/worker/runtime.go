@@ -387,13 +387,13 @@ func (rt *containerRuntime) start(ctx context.Context, cmd command) commandResul
 	// the worker process
 	task, err := container.NewTask(ctx, cio.LogFile("/tmp/a1s-"+payload.Name+".log"))
 	if err != nil {
-		container.Delete(ctx)
+		container.Delete(ctx, client.WithSnapshotCleanup)
 		return commandResult{OK: false, Error: fmt.Sprintf("create task: %v", err)}
 	}
 
 	if err := task.Start(ctx); err != nil {
 		task.Delete(ctx, client.WithProcessKill)
-		container.Delete(ctx)
+		container.Delete(ctx, client.WithSnapshotCleanup)
 		return commandResult{OK: false, Error: fmt.Sprintf("start task: %v", err)}
 	}
 
@@ -461,7 +461,10 @@ func (rt *containerRuntime) removeExisting(ctx context.Context, cd *client.Clien
 		task.Delete(ctx, client.WithProcessKill)
 	}
 
-	return container.Delete(ctx)
+	// WithSnapshotCleanup also removes the container's snapshot, which
+	// would otherwise outlive the record until the lazy GC and break the
+	// deterministic recreation of same-named containers
+	return container.Delete(ctx, client.WithSnapshotCleanup)
 }
 
 func envOr(key, fallback string) string {

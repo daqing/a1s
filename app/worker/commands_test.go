@@ -18,7 +18,7 @@ import (
 // loop will register as, runs the loop briefly, and asserts the command
 // comes out done with the reported result in the database.
 func TestPollExecutesQueuedCommands(t *testing.T) {
-	dsn := apitestDsn()
+	dsn := apitestDsn(t)
 	if dsn == "" {
 		t.Skip("A1S_TEST_DSN not set; skipping database-backed test")
 	}

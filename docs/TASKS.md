@@ -30,7 +30,7 @@ box until that line is true.
 | 2     | API process + CLI client          | T2.1–T2.9 | 9/9 ✓  |
 | 3     | Worker agent + heartbeats         | T3.1–T3.8 | 8/8 ✓  |
 | 4     | Scheduler                         | T4.1–T4.5 | 5/5 ✓  |
-| 5     | Health monitor                    | T5.1–T5.6 | open   |
+| 5     | Health monitor                    | T5.1–T5.6 | 6/6 ✓  |
 | 6     | Hardening and polish              | T6.1–T6.7 | open   |
 
 ---
@@ -303,20 +303,20 @@ box until that line is true.
 
 ## Phase 5 — Health monitor: auto-restart and auto-migration
 
-- [ ] **T5.1 — Monitor loop skeleton + timing config**
+- [x] **T5.1 — Monitor loop skeleton + timing config**
   `a1s monitor` with env-configurable heartbeat timeout and poll interval;
   loop structure in place, marking nothing yet.
   *Done when:* the process runs, logs its configured timings, and is
   documented in `.env.example`.
 
-- [ ] **T5.2 — Mark lost workers**
+- [x] **T5.2 — Mark lost workers**
   Workers whose `last_heartbeat_at` is older than the timeout transition
   `active`→`lost` through `UpdateWhereVersion` so two monitor instances never
   double-mark.
   *Done when:* stopping a worker's heartbeat (kill the process) flips its row
   to `lost` within the detection window, verified in the DB.
 
-- [ ] **T5.3 — Auto-migration**
+- [x] **T5.3 — Auto-migration**
   For each container on a lost worker, reset to `pending` with
   `worker_id NULL` (version-guarded) so the scheduler reschedules onto
   survivors. Define and record takeover semantics in `docs/state-model.md`:
@@ -325,20 +325,20 @@ box until that line is true.
   *Done when:* containers on a lost worker return to `pending` and get
   rescheduled by Phase 4 machinery without any manual DB edits.
 
-- [ ] **T5.4 — Auto-restart**
+- [x] **T5.4 — Auto-restart**
   Watch for `failed` containers (and exited ones whose `restart_policy` says
   so) and re-queue them as `pending`, version-guarded.
   *Done when:* `kill`-ing a container process externally results in an
   automatic restart within the detection window, per policy.
 
-- [ ] **T5.5 — Cross-instance dedup review**
+- [x] **T5.5 — Cross-instance dedup review**
   Audit every monitor transition for the optimistic-lock pattern; add a
   regression test that runs the recovery logic twice concurrently and
   asserts single effects.
   *Done when:* two monitor instances running simultaneously through a
   worker-loss event produce no double-migrations or double-restarts.
 
-- [ ] **T5.6 — Phase 5 check (the core demo)**
+- [x] **T5.6 — Phase 5 check (the core demo)**
   Document the failure-detection timeline (heartbeat interval × timeout ×
   poll interval) in `docs/state-model.md`, then run the demo.
   *Done when:* two workers; several containers running; `kill -9` one worker

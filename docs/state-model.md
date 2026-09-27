@@ -74,7 +74,7 @@ Transitions (actor in parentheses):
 | `scheduled` → `failed`    | worker report (Phase 4)        | Start command failed.                                                  |
 | `running` → `stopped`     | API desired state (Phase 2) + worker confirmation | `stop` records the desired state; the worker acts and reports. |
 | `running` → `failed`      | worker report (Phase 3/6)      | Unexpected non-zero exit.                                              |
-| `scheduled`/`running` → `pending` | monitor (Phase 5)      | Auto-migration: the owning worker was marked `lost`; `worker_id` resets to NULL so the scheduler reschedules. |
+| `scheduled`/`running` → `pending` | monitor (Phase 5)      | Auto-migration: the owning worker was marked `lost`; `worker_id` resets to NULL so the scheduler reschedules. Only runtime-bearing states migrate — a `stopped` or `failed` container on a lost worker keeps its desired state and must not be restarted by the takeover. |
 | `failed` → `pending`      | monitor (Phase 5)              | Auto-restart, only when the `restart_policy` calls for it.             |
 | `*` → `lost`              | reconciliation (Phase 6)       | Runtime unaccountable; reconciliation decides cleanup or requeue.      |
 
@@ -84,10 +84,33 @@ auto-migration transition — both through `UpdateWhereVersion`.
 
 ## Restart policies
 
-`restart_policy` values follow Docker semantics: `no` (default), `on-failure`,
-`always`, `unless-stopped` (suffixes such as `on-failure:3` allowed). The
-monitor (Phase 5) requeues `failed` containers to `pending` only when the
-policy says so.
+`restart_policy` values follow Docker semantics: `no` (default),
+`on-failure[:N]`, `always`, `unless-stopped`. The monitor requeues `failed`
+containers to `pending` only when the policy calls for it (`no` never
+restarts; `on-failure:N` stops after N consecutive failures).
+
+`restart_count` counts consecutive auto-restarts: the monitor increments it
+on each requeue, and a report of `running` resets it to zero. `stopped`
+(exit 0) containers are never auto-restarted — a manual `stop` and a clean
+exit are indistinguishable in the current schema, so A1s errs on the side
+of not resurrecting stopped containers; distinguishing them needs a
+desired-state marker (Phase 6 schema work).
+
+## Failure-detection timeline
+
+With the default timings — heartbeat interval `H` = 5s (worker), heartbeat
+timeout `T` = 15s (monitor), monitor poll interval `M` = 5s — a worker that
+dies is detected within `T + M` (worst case 20s): the monitor can only
+observe staleness on its own ticks, and the heartbeat age first exceeds `T`
+at most one monitor interval after the last beat. Recovery then takes the
+scheduler interval `S` (3s) plus the worker command poll `C` (2s) plus the
+container start time, so a container lost with its worker is running on a
+survivor within roughly `T + M + S + C` (~25s with defaults). External
+container kills surface as `failed` via the worker status report within one
+reporting round (the command poll interval, 2s), and the auto-restart adds
+`S + C` on top. Tightening `T` trades detection speed against falsely
+marking workers lost during transient network hiccups; `H < T` must always
+hold.
 
 ## containerd state mapping
 
