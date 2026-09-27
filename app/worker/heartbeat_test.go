@@ -49,7 +49,7 @@ func TestHeartbeatLoopRegistersAndAdvances(t *testing.T) {
 		cancel()
 	}()
 
-	runLoop(ctx, client, name, 100*time.Millisecond)
+	runLoop(ctx, client, name, 100*time.Millisecond, 50*time.Millisecond)
 
 	var version int
 	var fresh bool
@@ -78,7 +78,7 @@ func TestLoopSurvivesTransientErrors(t *testing.T) {
 		cancel()
 	}()
 
-	runLoop(ctx, client, "t33-offline", 50*time.Millisecond)
+	runLoop(ctx, client, "t33-offline", 50*time.Millisecond, 50*time.Millisecond)
 	// reaching here means the loop survived the failed beats
 }
 

@@ -142,5 +142,34 @@ Responses: `200` with `{ "id": 1, "name": "w1", "status": "active" }`;
 `400` `validation_error` (missing name); `409` `conflict` (lost a version
 race — retry on the next beat); `401` when the token check fails.
 
-Later phases extend this group with the command channel (T3.4) and status
-reports (T3.7).
+### Command channel
+
+Vocabulary: `start`, `stop`, `remove`, `inspect` — all about the container
+named in `container_id`; `payload` carries action-specific data. Nothing
+generates commands until the scheduler lands (Phase 4).
+
+Delivery is at-least-once by polling: `GET .../commands` marks each handed
+command `delivered` (queued → delivered → done). A worker that dies after
+fetching but before reporting leaves its commands stuck in `delivered`;
+reclaiming those is Phase 6 reconciliation work.
+
+### `GET /api/v1/internal/workers/:id/commands`
+
+Returns the worker's queued commands in FIFO order and marks them
+delivered.
+
+Responses: `200` with
+`{ "commands": [ { "id": 7, "action": "start", "container_id": 5, "payload": {} } ] }`
+(an empty array when nothing is queued); `404` for a malformed worker id.
+
+### `POST /api/v1/internal/commands/:id/result`
+
+Marks the command done and stores the reported result verbatim:
+
+```json
+{ "ok": true, "detail": { "state": "running" } }
+```
+
+Responses: `200` with `{ "id": 7, "status": "done" }`; `404` unknown
+command; `409` conflict (already done, or a version race — re-fetch and
+report once); `400` for a malformed body.

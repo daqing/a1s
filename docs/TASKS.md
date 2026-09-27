@@ -28,7 +28,7 @@ box until that line is true.
 | 0     | Skeleton cleanup and commands     | T0.1–T0.5 | 5/5 ✓  |
 | 1     | Data model and optimistic locking | T1.1–T1.7 | 7/7 ✓  |
 | 2     | API process + CLI client          | T2.1–T2.9 | 9/9 ✓  |
-| 3     | Worker agent + heartbeats         | T3.1–T3.8 | 3/8    |
+| 3     | Worker agent + heartbeats         | T3.1–T3.8 | 4/8    |
 | 4     | Scheduler                         | T4.1–T4.5 | open   |
 | 5     | Health monitor                    | T5.1–T5.6 | open   |
 | 6     | Hardening and polish              | T6.1–T6.7 | open   |
@@ -228,7 +228,7 @@ box until that line is true.
   *Done when:* with `a1s api` + `a1s worker` running, `last_heartbeat_at`
   advances in the DB and `a1s workers` shows the worker as `active`.
 
-- [ ] **T3.4 — Command channel**
+- [x] **T3.4 — Command channel**
   `GET /api/v1/internal/workers/:id/commands` (simple polling every few
   seconds for now) plus a result-reporting endpoint. Define the command
   vocabulary (`start`, `stop`, `remove`, `inspect`) in `docs/api.md`. The API
