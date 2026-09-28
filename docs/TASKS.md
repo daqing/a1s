@@ -31,7 +31,7 @@ box until that line is true.
 | 3     | Worker agent + heartbeats         | T3.1–T3.8 | 8/8 ✓  |
 | 4     | Scheduler                         | T4.1–T4.5 | 5/5 ✓  |
 | 5     | Health monitor                    | T5.1–T5.6 | 6/6 ✓  |
-| 6     | Hardening and polish              | T6.1–T6.7 | 2/7    |
+| 6     | Hardening and polish              | T6.1–T6.7 | 3/7    |
 
 ---
 
@@ -363,7 +363,7 @@ box until that line is true.
   *Done when:* idempotency tests pass and the semantics are documented in
   `docs/api.md`.
 
-- [ ] **T6.3 — Observability**
+- [x] **T6.3 — Observability**
   Structured (JSON) logs per process with a process-role field; plus either
   a `/metrics` endpoint or an `a1s stats` CLI reading from the DB (pick one,
   record why).

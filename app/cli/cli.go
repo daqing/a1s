@@ -22,6 +22,8 @@ func Main(command string, args []string) int {
 		return removeContainer(args)
 	case "workers":
 		return listWorkers(args)
+	case "stats":
+		return statsMain(args)
 	default:
 		fmt.Fprintf(os.Stderr, "a1s: unknown client command %q\n", command)
 		return 2

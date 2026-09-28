@@ -15,6 +15,7 @@ import (
 	"github.com/daqing/a1s/app/monitor"
 	"github.com/daqing/a1s/app/scheduler"
 	"github.com/daqing/a1s/app/worker"
+	"github.com/daqing/a1s/internal/logjson"
 	"github.com/daqing/airway/cmd"
 	"github.com/daqing/airway/lib/plugin"
 	"github.com/daqing/airway/lib/redis_client"
@@ -47,23 +48,34 @@ func main() {
 
 	switch args[0] {
 	case "server", "api":
+		apiLog := &logjson.Writer{Role: "api"}
+		log.SetFlags(0)
+		log.SetOutput(apiLog)
+		gin.DefaultWriter = apiLog
+		gin.DefaultErrorWriter = apiLog
 		runServer()
 	case "help", "-h", "--help":
 		printUsage(os.Stdout)
 		fmt.Fprintln(os.Stdout)
 		cmd.Version = versionString()
 		cmd.Run([]string{"help"})
-	case "run", "ps", "stop", "rm", "workers":
+	case "run", "ps", "stop", "rm", "workers", "stats":
 		loadCLIEnv()
 		os.Exit(cli.Main(args[0], args[1:]))
 	case "worker":
 		loadCLIEnv()
+		log.SetFlags(0)
+		log.SetOutput(&logjson.Writer{Role: "worker"})
 		os.Exit(worker.Main(args[1:]))
 	case "scheduler":
 		loadCLIEnv()
+		log.SetFlags(0)
+		log.SetOutput(&logjson.Writer{Role: "scheduler"})
 		os.Exit(scheduler.Main(args[1:]))
 	case "monitor":
 		loadCLIEnv()
+		log.SetFlags(0)
+		log.SetOutput(&logjson.Writer{Role: "monitor"})
 		os.Exit(monitor.Main(args[1:]))
 	default:
 		cmd.Version = versionString()
@@ -115,6 +127,7 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "  stop       a1s stop <id>")
 	fmt.Fprintln(w, "  rm         a1s rm <id>")
 	fmt.Fprintln(w, "  workers    list workers")
+	fmt.Fprintln(w, "  stats      cluster summary read from the database")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "any other command is dispatched to the Airway CLI (repl, db:migrate, generate, ...); the command list follows")
 }
