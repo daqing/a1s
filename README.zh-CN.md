@@ -1,7 +1,5 @@
 # A1s
 
-[English](README.md) | [简体中文](README.zh-CN.md)
-
 A1s 是一个简化版容器编排系统,提供 Kubernetes 最核心的高可用能力——容器监控、
 故障自动重启、跨 worker 自动迁移——同时远比 Kubernetes 易于理解和运维。它不采用
 Kubernetes 的声明式 YAML 模型和陡峭学习曲线,而是提供一组少量、命令式的操作。
@@ -115,6 +113,19 @@ CI 所跑的):
 scripts/e2e-chaos.sh          # macOS:A1S_E2E_CONTAINER_PROXY=http://http.docker.internal:3128
 ```
 
+### 完全不依赖 Docker:Lima
+
+`scripts/vm.sh` 在一个纯 Lima 虚拟机上运行同样的集群——不用 Docker,也不用
+Colima。VM 原生承载 containerd、PostgreSQL 和三个 worker(overlayfs 可用、
+无需折腾代理);只有控制面留在宿主机上:
+
+```sh
+just vm          # 供应(首次启动下载镜像)并启动
+just vm-down     # 停止进程;VM 继续保留
+```
+
+`limactl delete a1s` 可整体重置 VM。见 `docs/architecture.md`。
+
 ## 配置
 
 每个变量及默认值都写在 `.env.example`。速览:
@@ -181,3 +192,7 @@ scripts/e2e-chaos.sh      # 完整端到端 chaos 验收
 ## 许可证
 
 [MIT](LICENSE)
+
+---
+
+[English](README.md) | [简体中文](README.zh-CN.md)

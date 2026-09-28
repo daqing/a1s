@@ -31,6 +31,17 @@ process. Worker containers need the host's containerd socket mounted
 run on a Linux host sharing filesystems with that containerd — layer
 application is client-side.
 
+## Lima-only development (no Docker)
+
+`scripts/vm.sh` replaces Docker entirely for local development: one Ubuntu
+Lima VM hosts containerd, PostgreSQL and the workers natively — the
+production shape, with none of the nested-container workarounds (overlayfs
+works on the VM disk, the worker shares the filesystem with its containerd
+by construction, no socat, no proxy juggling). Only the control plane
+(api/scheduler/monitor) stays on the host and reaches the database through
+Lima's port forwarding. The VM's PostgreSQL listens on 5437 so it cannot
+collide with a native postgres on 5432.
+
 ## Development containerd
 
 The worker needs a real containerd on the development machine. On macOS the

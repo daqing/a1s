@@ -1,7 +1,5 @@
 # A1s
 
-[English](README.md) | [简体中文](README.zh-CN.md)
-
 A1s is a simplified container orchestration system that provides the core
 high-availability features of Kubernetes — container monitoring, automatic
 restart, and automatic migration of containers across workers — while being
@@ -132,6 +130,20 @@ restarts — is one command (used by CI as well):
 scripts/e2e-chaos.sh          # macOS: A1S_E2E_CONTAINER_PROXY=http://http.docker.internal:3128
 ```
 
+### Without Docker at all: Lima
+
+`scripts/vm.sh` runs the same cluster on a plain Lima VM — no Docker, no
+Colima. The VM hosts containerd, PostgreSQL and three workers natively
+(overlayfs works, no proxy juggling); only the control plane stays on the
+host:
+
+```sh
+just vm          # provision (first start downloads the image) and start
+just vm-down     # stop the processes; the VM keeps running
+```
+
+`limactl delete a1s` resets the VM entirely. See `docs/architecture.md`.
+
 ## Configuration
 
 Every variable is documented with defaults in `.env.example`. The short
@@ -212,3 +224,7 @@ standard tools.
 ## License
 
 [MIT](LICENSE)
+
+---
+
+[English](README.md) | [简体中文](README.zh-CN.md)
