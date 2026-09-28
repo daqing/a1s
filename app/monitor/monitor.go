@@ -19,8 +19,8 @@ import (
 
 	"github.com/daqing/a1s/app/models"
 	"github.com/daqing/airway/lib/repo"
-	"github.com/daqing/airway/lib/utils"
 	buildingsql "github.com/daqing/airway/lib/sql"
+	"github.com/daqing/airway/lib/utils"
 )
 
 const (
@@ -163,10 +163,10 @@ func parseDuration(raw string, fallback time.Duration) (time.Duration, bool) {
 
 // restartProbe is the slim projection the failed-container query scans.
 type restartProbe struct {
-	ID           int64  `db:"id"`
-	Version      int64  `db:"version"`
+	ID            int64  `db:"id"`
+	Version       int64  `db:"version"`
 	RestartPolicy string `db:"restart_policy"`
-	RestartCount int64  `db:"restart_count"`
+	RestartCount  int64  `db:"restart_count"`
 }
 
 // restartFailedContainers requeues failed containers whose restart policy

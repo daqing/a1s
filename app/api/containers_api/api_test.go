@@ -232,10 +232,21 @@ func TestStopContainer(t *testing.T) {
 		t.Fatalf("expected version %d after the transition, got %d", created.Version+1, stopped.Version)
 	}
 
-	// a stopped container is not stoppable again
-	w = apitest.DoJSON(t, r, "POST", fmt.Sprintf("/api/v1/containers/%d/stop", created.ID), nil, &errResp)
+	// a repeated stop is idempotent: same answer, no version bump
+	var again apiContainer
+	w = apitest.DoJSON(t, r, "POST", fmt.Sprintf("/api/v1/containers/%d/stop", created.ID), nil, &again)
+	if w.Code != 200 || again.Status != "stopped" {
+		t.Fatalf("expected 200 stopped on the repeated stop, got %d %s", w.Code, w.Body.String())
+	}
+	if again.Version != stopped.Version {
+		t.Fatalf("the repeated stop must not bump the version")
+	}
+
+	// a pending container is genuinely not stoppable
+	pending := createContainer(t, r, map[string]any{"name": uniqueName("stop-pending"), "image": "nginx"})
+	w = apitest.DoJSON(t, r, "POST", fmt.Sprintf("/api/v1/containers/%d/stop", pending.ID), nil, &errResp)
 	if w.Code != 409 {
-		t.Fatalf("expected 409 for an already stopped container, got %d", w.Code)
+		t.Fatalf("expected 409 for a pending container, got %d", w.Code)
 	}
 }
 

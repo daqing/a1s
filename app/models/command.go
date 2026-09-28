@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+
+	"github.com/daqing/airway/lib/repo"
+	buildingsql "github.com/daqing/airway/lib/sql"
 )
 
 // Command mirrors the commands table
@@ -35,6 +38,69 @@ const (
 
 func (Command) TableName() string {
 	return "commands"
+}
+
+// QueueStopCommand enqueues a stop command for the worker owning the
+// container, unless one was already created recently or is still in flight.
+// It reports whether a new command was created.
+func QueueStopCommand(containerID, workerID int64) (bool, error) {
+	// bound the re-issue rate: a stop that keeps failing (unkillable
+	// runtime) would otherwise be re-issued on every reconcile pass
+	var recent int64
+	if err := repo.CurrentDB().Conn().QueryRow(
+		`SELECT count(*) FROM commands
+		 WHERE container_id = $1 AND action = $2 AND created_at > now() - interval '60 seconds'`,
+		containerID, CommandStop).Scan(&recent); err != nil {
+		return false, err
+	}
+
+	if recent > 0 {
+		return false, nil
+	}
+
+	// the worker's stop executor needs the container name in the payload
+	container, err := repo.FindByID[Container](buildingsql.IdType(containerID))
+	if err != nil {
+		return false, err
+	}
+
+	if container == nil {
+		return false, nil
+	}
+
+	payload, err := json.Marshal(map[string]string{"name": container.Name})
+	if err != nil {
+		return false, err
+	}
+
+	_, err = repo.CreateFrom[Command](buildingsql.H{
+		"worker_id":    workerID,
+		"container_id": containerID,
+		"action":       CommandStop,
+		"payload":      JSONB(payload),
+	})
+
+	return err == nil, err
+}
+
+// HasInFlightStart reports whether a start command for the container is
+// still queued or delivered — the runtime may legitimately not exist yet,
+// so a reconcile pass must not treat the container as missing.
+func HasInFlightStart(containerID int64) (bool, error) {
+	inFlight, err := repo.Find[Command](repo.CurrentDB(),
+		buildingsql.SelectColumns("id").
+			From("commands").
+			Where(buildingsql.AllOf(
+				buildingsql.FieldEq(buildingsql.FieldFor(Command{}, "container_id"), containerID),
+				buildingsql.FieldEq(buildingsql.FieldFor(Command{}, "action"), CommandStart),
+				buildingsql.In("status", []string{CommandQueued, CommandDelivered}),
+			)).
+			Limit(1))
+	if err != nil {
+		return false, err
+	}
+
+	return len(inFlight) > 0, nil
 }
 
 func init() {

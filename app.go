@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -64,7 +64,7 @@ func (a *App) Router() *gin.Engine {
 }
 
 func (a *App) Run() {
-	fmt.Printf("%s running at: http://127.0.0.1:%s%s\n", a.name, a.port, a.prefix)
+	log.Printf("running at: http://127.0.0.1:%s%s", a.port, a.prefix)
 	_ = http.ListenAndServe(":"+a.port, a.Handler())
 }
 

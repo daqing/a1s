@@ -21,6 +21,16 @@ Why:
   phrasing there meant "containerd, like Kubernetes — not the Docker API",
   which this decision keeps: we speak to containerd itself.
 
+## Packaging
+
+One fat image with a command override: every A1s process is a subcommand of
+the same binary, so a deployment runs `docker run a1s api`,
+`docker run a1s scheduler`, and so on, instead of maintaining one image per
+process. Worker containers need the host's containerd socket mounted
+(`-v /run/containerd/containerd.sock:/run/containerd/containerd.sock`) and
+run on a Linux host sharing filesystems with that containerd — layer
+application is client-side.
+
 ## Development containerd
 
 The worker needs a real containerd on the development machine. On macOS the

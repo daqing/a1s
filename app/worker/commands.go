@@ -62,6 +62,47 @@ func (c *apiClient) fetchCommands(ctx context.Context, workerID int64) ([]comman
 	return out.Commands, nil
 }
 
+// manifestEntry is one line of the worker's reality snapshot.
+type manifestEntry struct {
+	ID     int64  `json:"id"`
+	Status string `json:"status"`
+}
+
+// reportManifest gives the API the full set of a1s containers this worker
+// actually runs, so the reconcile pass can repair drift (missing or stuck
+// rows) on the database side.
+func (c *apiClient) reportManifest(ctx context.Context, workerID int64, manifest []manifestEntry) error {
+	body, err := json.Marshal(map[string]any{"containers": manifest})
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut,
+		fmt.Sprintf("%s/api/v1/internal/workers/%d/manifest", c.baseURL, workerID), strings.NewReader(string(body)))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+c.token)
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	payload, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return apiErrorFromBody(resp.StatusCode, payload)
+	}
+
+	return nil
+}
+
 // reportStatus puts one observed container status; the API applies it
 // under the version lock when the transition is legal.
 func (c *apiClient) reportStatus(ctx context.Context, containerID int64, status string) error {
@@ -129,6 +170,21 @@ func (c *apiClient) reportResult(ctx context.Context, commandID int64, result co
 	return nil
 }
 
+// apiError is a non-2xx API response with its status code, so callers can
+// branch on it (e.g. 404 during ghost cleanup).
+type apiError struct {
+	Status  int
+	Message string
+}
+
+func (e *apiError) Error() string {
+	if e.Message != "" {
+		return fmt.Sprintf("api %d: %s", e.Status, e.Message)
+	}
+
+	return fmt.Sprintf("api %d", e.Status)
+}
+
 func apiErrorFromBody(status int, payload []byte) error {
 	var envelope struct {
 		Error struct {
@@ -138,11 +194,7 @@ func apiErrorFromBody(status int, payload []byte) error {
 	}
 	_ = json.Unmarshal(payload, &envelope)
 
-	if envelope.Error.Message != "" {
-		return fmt.Errorf("api %d: %s", status, envelope.Error.Message)
-	}
-
-	return fmt.Errorf("api %d", status)
+	return &apiError{Status: status, Message: envelope.Error.Message}
 }
 
 // pollOnce fetches and executes the worker's queued commands, reporting

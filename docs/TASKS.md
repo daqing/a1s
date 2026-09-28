@@ -31,7 +31,7 @@ box until that line is true.
 | 3     | Worker agent + heartbeats         | T3.1–T3.8 | 8/8 ✓  |
 | 4     | Scheduler                         | T4.1–T4.5 | 5/5 ✓  |
 | 5     | Health monitor                    | T5.1–T5.6 | 6/6 ✓  |
-| 6     | Hardening and polish              | T6.1–T6.7 | open   |
+| 6     | Hardening and polish              | T6.1–T6.7 | 7/7 ✓  |
 
 ---
 
@@ -349,7 +349,7 @@ box until that line is true.
 
 ## Phase 6 — Reconciliation, hardening, and polish
 
-- [ ] **T6.1 — Reconciliation loop**
+- [x] **T6.1 — Reconciliation loop**
   Inside the monitor (or standalone): periodically compare desired state (DB)
   with actual state (worker reports / runtime inspection) and repair drift —
   unexpected exits → restart policy, missing containers → re-queue, ghost
@@ -357,40 +357,40 @@ box until that line is true.
   *Done when:* manually corrupting state (drop a container behind the
   system's back) is detected and repaired within one reconcile cycle.
 
-- [ ] **T6.2 — Command idempotency**
+- [x] **T6.2 — Command idempotency**
   Repeated `stop`/`run` with identical parameters must be safe (document
   what `run` with an existing name does: reject or adopt). Cover with tests.
   *Done when:* idempotency tests pass and the semantics are documented in
   `docs/api.md`.
 
-- [ ] **T6.3 — Observability**
+- [x] **T6.3 — Observability**
   Structured (JSON) logs per process with a process-role field; plus either
   a `/metrics` endpoint or an `a1s stats` CLI reading from the DB (pick one,
   record why).
   *Done when:* a chaos run can be followed from logs/stats alone without
   touching the database.
 
-- [ ] **T6.4 — E2E chaos script + CI**
+- [x] **T6.4 — E2E chaos script + CI**
   A shell or Go script automating the Phase 5 demo (start cluster → run
   containers → kill worker → assert recovery), wired into CI.
   *Done when:* the script runs green unattended from a clean checkout with
   Docker available.
 
-- [ ] **T6.5 — Docs pass**
+- [x] **T6.5 — Docs pass**
   Rewrite `README.md` operational sections: how to run each process, a
   configuration reference (every `A1S_*` var), failure semantics; refresh
   `docs/state-model.md` and `docs/api.md` to match reality.
   *Done when:* a new contributor can go from clean checkout to the Phase 5
   demo using only the README.
 
-- [ ] **T6.6 — Packaging and one-command cluster**
+- [x] **T6.6 — Packaging and one-command cluster**
   Dockerfile per process (or one fat image with command override — decide and
   record); extend the justfile with `just cluster` launching api + scheduler
   + monitor + 2 workers locally.
   *Done when:* `just cluster` brings up a working local cluster from one
   command, and the container image(s) build.
 
-- [ ] **T6.7 — Phase 6 check: one-hour soak**
+- [x] **T6.7 — Phase 6 check: one-hour soak**
   *Done when:* the multi-instance setup (2× api, 2× scheduler, 2× monitor,
   2+ workers) survives an hour of randomized kills with zero inconsistent
   state — no duplicate scheduling, no lost updates — and the README

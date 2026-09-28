@@ -99,16 +99,30 @@ lock. While no worker owns the container the row simply becomes `stopped`;
 once workers exist (Phase 3+) a stop command is queued for the owning worker
 and its report remains authoritative — the end state is the same.
 
+Repeated stops are idempotent: stopping an already-`stopped` container
+answers `200` with the current row and no version bump. Stopping containers
+in other states (`pending`, `failed`, `lost`) is rejected with `409`.
+
 Responses: `200` with the container object after the transition; `404`
-`not_found`; `409` `conflict` (status not stoppable — e.g. `pending` — or
-lost a version race; re-read and retry).
+`not_found`; `409` `conflict` (status not stoppable, or lost a version
+race; re-read and retry).
 
 ### `DELETE /api/v1/containers/:id`
 
 Removes the row outright (no tombstone). Repeating a DELETE on the same id
-returns `404` — strict idempotency is revisited in Phase 6.
+returns `404`.
 
 Responses: `204` empty body; `404` `not_found`.
+
+## Idempotency
+
+- **`run` with an existing name** is rejected (`409 conflict`) — the name is
+  the dedup key and A1s never adopts or recreates an existing container.
+  Two `run` calls with identical parameters but different names create two
+  containers.
+- **`stop`** is idempotent (see above).
+- **`remove`** is safe to repeat: the first call deletes the row (`204`),
+  every later one answers `404` — strict, no tombstones.
 
 ## Workers
 
@@ -187,6 +201,33 @@ Responses: `200` with
 carries a `reason` when the report legally does not apply); `400`
 `validation_error` for an unmapped status; `404` unknown container; `409`
 on a lost version race (the next report round retries).
+
+### `PUT /api/v1/internal/workers/:id/manifest`
+
+The worker's reconcile snapshot: every a1s-labeled container it actually
+runs, with its mapped status. The API compares the manifest against desired
+state and repairs three kinds of drift, each under the version lock:
+
+1. **Missing runtime** — a row `scheduled`/`running` on this worker absent
+   from the manifest (the runtime vanished behind the system's back) is
+   re-queued to `pending` with no worker. Rows with an in-flight start
+   command are exempt: their runtime may legitimately not exist yet.
+2. **Lost stop** — a row `stopped` on this worker whose runtime reports
+   `running` gets a fresh stop command (rate-limited to one per minute per
+   container).
+3. **Cross-worker drift** — a `running` manifest entry whose row says
+   `stopped` on some other (possibly dead) worker also gets a stop command,
+   delivered to the reporting worker that can see the runtime.
+
+Ghost runtimes (a live containerd container with no row at all) are cleaned
+up worker-side: a status report answering 404 triggers local removal.
+
+Request: `{ "containers": [ { "id": 5, "status": "running" } ] }`
+
+Responses: `200` with
+`{ "worker_id": 197, "repaired": 1 }` — the number of drift repairs
+performed; `400` `validation_error` for a malformed body; `404` for a
+malformed worker id.
 
 ### `POST /api/v1/internal/commands/:id/result`
 

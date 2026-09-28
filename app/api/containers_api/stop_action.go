@@ -3,6 +3,7 @@ package containers_api
 import (
 	"errors"
 	"fmt"
+	"log"
 	"strconv"
 
 	"github.com/daqing/a1s/app/api/respond"
@@ -34,6 +35,24 @@ func StopAction(c *gin.Context) {
 		return
 	}
 
+	// repeated stops are idempotent: a row that is already stopped answers
+	// 200 with its current state, without touching the version
+	if row.Status == models.ContainerStopped {
+		updated, err := repo.FindByID[models.Container](buildingsql.IdType(id))
+		if err != nil {
+			respond.Internal(c, err)
+			return
+		}
+
+		if updated == nil {
+			respond.NotFound(c, fmt.Sprintf("container %d not found", id))
+			return
+		}
+
+		c.JSON(200, toContainerJSON(updated))
+		return
+	}
+
 	if row.Status != models.ContainerScheduled && row.Status != models.ContainerRunning {
 		respond.Conflict(c, fmt.Sprintf("container %d is %s, not stoppable", id, row.Status))
 		return
@@ -50,6 +69,16 @@ func StopAction(c *gin.Context) {
 
 		respond.Internal(c, err)
 		return
+	}
+
+	// the row carries the desired state; the owning worker learns about the
+	// stop through the command channel and kills the runtime task
+	if row.WorkerID != nil {
+		if _, err := models.QueueStopCommand(row.ID, *row.WorkerID); err != nil {
+			// the reconcile pass re-issues lost stop commands, so a failed
+			// queue must not fail the API call
+			log.Printf("queue stop command for container %d: %v", row.ID, err)
+		}
 	}
 
 	updated, err := repo.FindByID[models.Container](buildingsql.IdType(id))
