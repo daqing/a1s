@@ -35,6 +35,24 @@ func StopAction(c *gin.Context) {
 		return
 	}
 
+	// repeated stops are idempotent: a row that is already stopped answers
+	// 200 with its current state, without touching the version
+	if row.Status == models.ContainerStopped {
+		updated, err := repo.FindByID[models.Container](buildingsql.IdType(id))
+		if err != nil {
+			respond.Internal(c, err)
+			return
+		}
+
+		if updated == nil {
+			respond.NotFound(c, fmt.Sprintf("container %d not found", id))
+			return
+		}
+
+		c.JSON(200, toContainerJSON(updated))
+		return
+	}
+
 	if row.Status != models.ContainerScheduled && row.Status != models.ContainerRunning {
 		respond.Conflict(c, fmt.Sprintf("container %d is %s, not stoppable", id, row.Status))
 		return

@@ -31,7 +31,7 @@ box until that line is true.
 | 3     | Worker agent + heartbeats         | T3.1–T3.8 | 8/8 ✓  |
 | 4     | Scheduler                         | T4.1–T4.5 | 5/5 ✓  |
 | 5     | Health monitor                    | T5.1–T5.6 | 6/6 ✓  |
-| 6     | Hardening and polish              | T6.1–T6.7 | 1/7    |
+| 6     | Hardening and polish              | T6.1–T6.7 | 2/7    |
 
 ---
 
@@ -357,7 +357,7 @@ box until that line is true.
   *Done when:* manually corrupting state (drop a container behind the
   system's back) is detected and repaired within one reconcile cycle.
 
-- [ ] **T6.2 — Command idempotency**
+- [x] **T6.2 — Command idempotency**
   Repeated `stop`/`run` with identical parameters must be safe (document
   what `run` with an existing name does: reject or adopt). Cover with tests.
   *Done when:* idempotency tests pass and the semantics are documented in

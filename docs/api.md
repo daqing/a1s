@@ -99,16 +99,30 @@ lock. While no worker owns the container the row simply becomes `stopped`;
 once workers exist (Phase 3+) a stop command is queued for the owning worker
 and its report remains authoritative — the end state is the same.
 
+Repeated stops are idempotent: stopping an already-`stopped` container
+answers `200` with the current row and no version bump. Stopping containers
+in other states (`pending`, `failed`, `lost`) is rejected with `409`.
+
 Responses: `200` with the container object after the transition; `404`
-`not_found`; `409` `conflict` (status not stoppable — e.g. `pending` — or
-lost a version race; re-read and retry).
+`not_found`; `409` `conflict` (status not stoppable, or lost a version
+race; re-read and retry).
 
 ### `DELETE /api/v1/containers/:id`
 
 Removes the row outright (no tombstone). Repeating a DELETE on the same id
-returns `404` — strict idempotency is revisited in Phase 6.
+returns `404`.
 
 Responses: `204` empty body; `404` `not_found`.
+
+## Idempotency
+
+- **`run` with an existing name** is rejected (`409 conflict`) — the name is
+  the dedup key and A1s never adopts or recreates an existing container.
+  Two `run` calls with identical parameters but different names create two
+  containers.
+- **`stop`** is idempotent (see above).
+- **`remove`** is safe to repeat: the first call deletes the row (`204`),
+  every later one answers `404` — strict, no tombstones.
 
 ## Workers
 
