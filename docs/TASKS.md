@@ -31,7 +31,7 @@ box until that line is true.
 | 3     | Worker agent + heartbeats         | T3.1–T3.8 | 8/8 ✓  |
 | 4     | Scheduler                         | T4.1–T4.5 | 5/5 ✓  |
 | 5     | Health monitor                    | T5.1–T5.6 | 6/6 ✓  |
-| 6     | Hardening and polish              | T6.1–T6.7 | 3/7    |
+| 6     | Hardening and polish              | T6.1–T6.7 | 4/7    |
 
 ---
 
@@ -370,7 +370,7 @@ box until that line is true.
   *Done when:* a chaos run can be followed from logs/stats alone without
   touching the database.
 
-- [ ] **T6.4 — E2E chaos script + CI**
+- [x] **T6.4 — E2E chaos script + CI**
   A shell or Go script automating the Phase 5 demo (start cluster → run
   containers → kill worker → assert recovery), wired into CI.
   *Done when:* the script runs green unattended from a clean checkout with
