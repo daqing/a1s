@@ -72,6 +72,16 @@ Design invariants:
 
 Requirements: Go 1.27+, Docker (for PostgreSQL and containerd), curl.
 
+The one-command way — `just cluster` boots postgres + a containerd node,
+migrates, and starts api, scheduler, monitor and two workers (logs and pids
+in `.cluster/`; `just cluster-down` stops them):
+
+```sh
+just cluster
+```
+
+The explicit steps, for understanding what `just cluster` does:
+
 ```sh
 # 1. PostgreSQL
 docker run -d --name a1s-pg -e POSTGRES_USER=a1s -e POSTGRES_PASSWORD=a1s \

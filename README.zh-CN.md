@@ -56,6 +56,16 @@ A1s 实现三项核心能力:
 
 要求:Go 1.27+、Docker(用于 PostgreSQL 和 containerd)、curl。
 
+一条命令的方式——`just cluster` 会启动 postgres 与 containerd 节点、执行迁移,
+并启动 api、scheduler、monitor 和两个 worker(日志与 pid 在 `.cluster/`;
+`just cluster-down` 停止它们):
+
+```sh
+just cluster
+```
+
+下面是 `just cluster` 背后的完整步骤,便于理解:
+
 ```sh
 # 1. PostgreSQL
 docker run -d --name a1s-pg -e POSTGRES_USER=a1s -e POSTGRES_PASSWORD=a1s \
