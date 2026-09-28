@@ -31,7 +31,7 @@ box until that line is true.
 | 3     | Worker agent + heartbeats         | T3.1–T3.8 | 8/8 ✓  |
 | 4     | Scheduler                         | T4.1–T4.5 | 5/5 ✓  |
 | 5     | Health monitor                    | T5.1–T5.6 | 6/6 ✓  |
-| 6     | Hardening and polish              | T6.1–T6.7 | 4/7    |
+| 6     | Hardening and polish              | T6.1–T6.7 | 5/7    |
 
 ---
 
@@ -376,7 +376,7 @@ box until that line is true.
   *Done when:* the script runs green unattended from a clean checkout with
   Docker available.
 
-- [ ] **T6.5 — Docs pass**
+- [x] **T6.5 — Docs pass**
   Rewrite `README.md` operational sections: how to run each process, a
   configuration reference (every `A1S_*` var), failure semantics; refresh
   `docs/state-model.md` and `docs/api.md` to match reality.

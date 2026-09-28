@@ -1,5 +1,7 @@
 # A1s
 
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 A1s is a simplified container orchestration system that provides the core
 high-availability features of Kubernetes — container monitoring, automatic
 restart, and automatic migration of containers across workers — while being
@@ -32,45 +34,140 @@ A1s implements three core capabilities:
 Out of scope: service discovery, networking/ingress, configuration
 management, rolling upgrades, and the rest of the Kubernetes feature set.
 
-## User Interface Philosophy
-
-Operations are **imperative** (command-style), not declarative (YAML).
-Users issue direct commands, and A1s maintains the state needed to keep the
-system consistent. The CLI is itself stateless: it talks to the API process
-over HTTP.
-
 ## Architecture
 
-- **Implementation language**: Go.
-- **Control plane**: not a single process, but several stateless,
-  role-separated processes that cooperate through a shared database:
-  - **API process** — accepts user commands (run, stop, scale, ...), writes
-    state to the database.
-  - **Scheduler process** — watches for unscheduled containers, decides
-    which worker each lands on, and writes the decision back.
-  - **Health monitor process** — tracks worker heartbeats; on timeout,
-    marks the failed worker's containers for rescheduling.
-  - Optionally a **state reconciliation process** that compares desired
-    state with actual container state reported by workers.
-- **State storage**: all system state lives in **PostgreSQL**. Control
-  plane processes persist nothing locally; multiple instances of any
-  process can sit behind a load balancer and read the system's state from
-  the database. Any process can be killed and restarted at will, and the
-  failure of a control plane process never affects containers already
-  running on workers.
-- **Concurrency control**: **optimistic locking** (version fields), so
-  multiple stateless instances can read and write concurrently without
-  conflicting decisions (e.g., two schedulers scheduling the same
-  container).
-- **Failure detection**: workers send **heartbeats** to the control plane
-  at regular intervals; a worker whose heartbeat times out is declared
-  lost, and its containers are rescheduled onto other workers.
-- **Container runtime**: **containerd** — the same engine Kubernetes uses —
-  reached through its official Go client, rather than a direct Docker API.
-  The client choice is recorded in `docs/architecture.md`.
-- **Worker agent**: a process on each worker node that manages the local
-  container lifecycle (create, start, stop, inspect) through the containerd
-  client, and reports status and heartbeats to the control plane.
+One Go binary (`a1s`) with five subcommands, cooperating through PostgreSQL:
+
+- **`a1s api`** — the HTTP control plane. The only write path for user
+  commands; never talks to workers directly.
+- **`a1s scheduler`** — assigns pending containers to workers (least-loaded
+  first) and queues the start commands.
+- **`a1s monitor`** — marks workers whose heartbeat timed out as lost,
+  requeues their runtime containers onto survivors, and requeues failed
+  containers whose restart policy calls for it.
+- **`a1s worker`** — the agent on each worker node: pulls and runs
+  containers through **containerd**, heartbeats, executes queued commands,
+  and reports observed status back.
+- **`a1s run|ps|stop|rm|workers|stats`** — the stateless CLI client, talking
+  to the API over HTTP.
+
+Design invariants:
+
+- **All state lives in PostgreSQL.** Control-plane processes persist
+  nothing locally; run any number of them behind plain round-robin.
+- **Optimistic locking everywhere.** Every state transition is a
+  version-guarded update, so competing processes can never double-apply
+  (see `docs/state-model.md`).
+- **Reconciliation** (`docs/state-model.md`): workers report their real
+  container set every poll round and the API repairs drift — missing
+  runtimes are re-queued, lost stops are re-issued, ghost runtimes are
+  cleaned up.
+- **Failure detection**: worker heartbeats; a worker whose heartbeat times
+  out is declared lost and its containers migrate. The timing math lives in
+  `docs/state-model.md`.
+- **Runtime**: containerd through its official Go client (why, in
+  `docs/architecture.md`).
+
+## Quick start
+
+Requirements: Go 1.27+, Docker (for PostgreSQL and containerd), curl.
+
+```sh
+# 1. PostgreSQL
+docker run -d --name a1s-pg -e POSTGRES_USER=a1s -e POSTGRES_PASSWORD=a1s \
+  -e POSTGRES_DB=a1s -p 127.0.0.1:5432:5432 postgres:16
+
+# 2. A containerd node (see docs/architecture.md for the details; the
+#    proxy vars are only needed where registry access requires one)
+docker run -d --name a1s-containerd --privileged -p 127.0.0.1:60001:60001 \
+  -e HTTPS_PROXY=http://http.docker.internal:3128 \
+  -e HTTP_PROXY=http://http.docker.internal:3128 \
+  -e NO_PROXY=localhost,127.0.0.1 \
+  alpine:latest \
+  sh -c 'apk add --no-cache containerd socat runc >/dev/null && \
+    (containerd >/var/log/containerd.log 2>&1 &) && sleep 2 && \
+    socat TCP-LISTEN:60001,fork,reuseaddr UNIX-CONNECT:/run/containerd/containerd.sock'
+
+# 3. Migrations
+go build -o bin/a1s .
+A1S_DSN='postgres://a1s:a1s@127.0.0.1:5432/a1s?sslmode=disable' go run . db:migrate
+
+# 4. The cluster
+A1S_DSN='postgres://a1s:a1s@127.0.0.1:5432/a1s?sslmode=disable' ./bin/a1s api &
+A1S_DSN='postgres://a1s:a1s@127.0.0.1:5432/a1s?sslmode=disable' ./bin/a1s scheduler &
+A1S_DSN='postgres://a1s:a1s@127.0.0.1:5432/a1s?sslmode=disable' ./bin/a1s monitor &
+A1S_INTERNAL_TOKEN=dev-token A1S_API_URL=http://127.0.0.1:1905 \
+A1S_CONTAINERD_ADDR=tcp://127.0.0.1:60001 A1S_CONTAINERD_SNAPSHOTTER=native \
+  ./bin/a1s worker --name w1 &
+```
+
+> On macOS the worker must run on a Linux host sharing filesystems with its
+> containerd — the two-container layout above is the simplest local shape.
+> `docs/architecture.md` explains why.
+
+Then:
+
+```sh
+export A1S_API_URL=http://127.0.0.1:1905
+./bin/a1s run nginx --name web --restart-policy on-failure
+./bin/a1s ps
+./bin/a1s stats
+./bin/a1s stop web   # by id; see ./bin/a1s ps
+```
+
+The automated end-to-end chaos acceptance — two workers, `kill -9`, policy
+restarts — is one command (used by CI as well):
+
+```sh
+scripts/e2e-chaos.sh          # macOS: A1S_E2E_CONTAINER_PROXY=http://http.docker.internal:3128
+```
+
+## Configuration
+
+Every variable is documented with defaults in `.env.example`. The short
+version:
+
+| Variable | Default | Used by | Purpose |
+| --- | --- | --- | --- |
+| `A1S_DSN` | — | api, scheduler, monitor, stats | PostgreSQL DSN holding all state |
+| `A1S_API_URL` | `http://127.0.0.1:1905` | worker, CLI | control plane endpoint |
+| `A1S_INTERNAL_TOKEN` | — | api, worker | shared bearer token for the internal API; **required** |
+| `AIRWAY_PORT` | `1905` | api | listen port |
+| `A1S_HEARTBEAT_INTERVAL` | `5s` | worker | heartbeat cadence |
+| `A1S_COMMAND_INTERVAL` | `2s` | worker | command poll / status report cadence |
+| `A1S_SCHEDULER_INTERVAL` | `3s` | scheduler | assignment loop cadence |
+| `A1S_HEARTBEAT_TIMEOUT` | `15s` | monitor | heartbeat age before a worker is lost |
+| `A1S_MONITOR_INTERVAL` | `5s` | monitor | recovery loop cadence |
+| `A1S_CONTAINERD_ADDR` | `/run/containerd/containerd.sock` | worker | containerd socket or `tcp://host:port` |
+| `A1S_CONTAINERD_NAMESPACE` | `a1s` | worker | containerd namespace |
+| `A1S_CONTAINERD_SNAPSHOTTER` | `overlayfs` | worker | snapshotter for pulls and containers |
+| `A1S_CONTAINERD_PLATFORM` | local | worker | pull/spec platform override for cross-platform clients |
+
+Airway framework variables (`AIRWAY_ENV`, `AIRWAY_PORT`, `URL_PREFIX`,
+`STORAGE_*`) keep their framework names; see `.env.example`.
+
+## Failure semantics
+
+- **Control-plane processes are disposable.** Killing api, scheduler or
+  monitor never touches running containers. Multiple instances of each are
+  safe: every write is a version-guarded transition, conflicts resolve by
+  re-reading.
+- **A worker that dies** (no heartbeat for `A1S_HEARTBEAT_TIMEOUT`) is
+  marked `lost`; its `scheduled`/`running` containers return to `pending`
+  and the scheduler places them on survivors. Desired states (`stopped`,
+  `failed`) are not restarted by the takeover. A `lost` worker rejoins only
+  by restarting its agent, which re-registers it.
+- **A container that dies unexpectedly** is reported `failed` by its worker
+  within one status-report round; the monitor requeues it per
+  `restart_policy` (`no` | `on-failure[:N]` | `always` | `unless-stopped`),
+  counting consecutive failures; a `running` report resets the count.
+- **Drift** (a runtime deleted behind the system's back, a lost stop
+  command, a ghost container after a row deletion) is detected by the
+  worker manifest reconciliation within one poll round and repaired
+  automatically.
+
+Full status machines and transition actors: `docs/state-model.md`. Wire
+protocol: `docs/api.md`.
 
 ## Implementation Foundation: Airway
 
@@ -83,13 +180,24 @@ everything from the Go standard library:
   queries such as scheduler worker selection.
 - **Schema-driven migrations** and the scaffolding CLI for schema
   management.
-- **Gin-based HTTP server and CLI command system** — the control plane's
-  processes (API, scheduler, health monitor) run as subcommands of one
-  binary, sharing the same code and model definitions; the worker agent
-  likewise runs as a subcommand of the same binary.
+- **Gin-based HTTP server and CLI command system** — all processes run as
+  subcommands of one binary, sharing the same code and model definitions.
 
 Components outside Airway's coverage, notably the containerd client used by
 the worker agent, use the official upstream Go libraries.
+
+## Development
+
+```sh
+go build ./...            # build
+go test ./...             # unit tests (skips DB-backed ones without A1S_TEST_DSN)
+scripts/e2e-chaos.sh      # full end-to-end chaos acceptance
+```
+
+Database-backed tests use their own per-package databases derived from
+`A1S_TEST_DSN` (see `internal/testdb`). Logs from every process are JSON
+lines with a `role` field, so multi-process runs filter cleanly with
+standard tools.
 
 ## License
 

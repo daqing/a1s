@@ -202,6 +202,33 @@ carries a `reason` when the report legally does not apply); `400`
 `validation_error` for an unmapped status; `404` unknown container; `409`
 on a lost version race (the next report round retries).
 
+### `PUT /api/v1/internal/workers/:id/manifest`
+
+The worker's reconcile snapshot: every a1s-labeled container it actually
+runs, with its mapped status. The API compares the manifest against desired
+state and repairs three kinds of drift, each under the version lock:
+
+1. **Missing runtime** — a row `scheduled`/`running` on this worker absent
+   from the manifest (the runtime vanished behind the system's back) is
+   re-queued to `pending` with no worker. Rows with an in-flight start
+   command are exempt: their runtime may legitimately not exist yet.
+2. **Lost stop** — a row `stopped` on this worker whose runtime reports
+   `running` gets a fresh stop command (rate-limited to one per minute per
+   container).
+3. **Cross-worker drift** — a `running` manifest entry whose row says
+   `stopped` on some other (possibly dead) worker also gets a stop command,
+   delivered to the reporting worker that can see the runtime.
+
+Ghost runtimes (a live containerd container with no row at all) are cleaned
+up worker-side: a status report answering 404 triggers local removal.
+
+Request: `{ "containers": [ { "id": 5, "status": "running" } ] }`
+
+Responses: `200` with
+`{ "worker_id": 197, "repaired": 1 }` — the number of drift repairs
+performed; `400` `validation_error` for a malformed body; `404` for a
+malformed worker id.
+
 ### `POST /api/v1/internal/commands/:id/result`
 
 Marks the command done and stores the reported result verbatim:
