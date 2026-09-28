@@ -31,7 +31,7 @@ box until that line is true.
 | 3     | Worker agent + heartbeats         | T3.1–T3.8 | 8/8 ✓  |
 | 4     | Scheduler                         | T4.1–T4.5 | 5/5 ✓  |
 | 5     | Health monitor                    | T5.1–T5.6 | 6/6 ✓  |
-| 6     | Hardening and polish              | T6.1–T6.7 | 6/7    |
+| 6     | Hardening and polish              | T6.1–T6.7 | 7/7 ✓  |
 
 ---
 
@@ -390,7 +390,7 @@ box until that line is true.
   *Done when:* `just cluster` brings up a working local cluster from one
   command, and the container image(s) build.
 
-- [ ] **T6.7 — Phase 6 check: one-hour soak**
+- [x] **T6.7 — Phase 6 check: one-hour soak**
   *Done when:* the multi-instance setup (2× api, 2× scheduler, 2× monitor,
   2+ workers) survives an hour of randomized kills with zero inconsistent
   state — no duplicate scheduling, no lost updates — and the README

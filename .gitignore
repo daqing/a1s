@@ -17,5 +17,6 @@ schema.json
 build-errors.log
 
 e2e-*.log
+soak-*.log
 
 .cluster/
