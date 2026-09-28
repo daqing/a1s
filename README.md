@@ -189,7 +189,7 @@ Airway framework variables (`AIRWAY_ENV`, `AIRWAY_PORT`, `URL_PREFIX`,
   automatically.
 
 Full status machines and transition actors: `docs/state-model.md`. Wire
-protocol: `docs/api.md`.
+protocol: `docs/api.md`. Cloud deployment: `deploy/tencent-cloud.md`.
 
 ## Implementation Foundation: Airway
 

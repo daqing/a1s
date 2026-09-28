@@ -164,6 +164,7 @@ Airway 框架变量(`AIRWAY_ENV`、`AIRWAY_PORT`、`URL_PREFIX`、`STORAGE_*`)�
   worker manifest 对账在一个轮询周期内发现并自动修复。
 
 完整状态机与迁移执行者:`docs/state-model.md`。线上协议:`docs/api.md`。
+云端部署:`deploy/tencent-cloud.md`。
 
 ## 实现基础:Airway
 
